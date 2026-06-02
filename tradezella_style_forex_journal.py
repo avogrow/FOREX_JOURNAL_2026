@@ -4,7 +4,7 @@ import sqlite3
 import plotly.express as px
 import plotly.graph_objects as go
 import requests
-from datetime import datetime, timedelta
+import time
 import csv
 import os
 import json
