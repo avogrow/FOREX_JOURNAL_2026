@@ -6,3 +6,4 @@ reportlab
 numpy
 flask
 stripe
+openpyxl
