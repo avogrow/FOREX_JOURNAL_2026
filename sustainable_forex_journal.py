@@ -667,9 +667,6 @@ def render_enrollment_page():
     checkout_url = st.session_state.get("checkout_url", "")
 
     st.markdown("# SUSTAINABLE FOREX JOURNAL")
-    st.markdown(
-        "**Pr1ceForm Smart Money** automatically plots every key Smart Money concept on your chart — Order Blocks, CHoCH, BOS, Sessions, and Fibonacci — with a built-in trade checklist so you never miss a setup."
-    )
 
     c1, c2 = st.columns([2, 1])
     with c1:
@@ -678,10 +675,8 @@ def render_enrollment_page():
 
         st.markdown("### Why traders choose this Journal")
         st.markdown(
-            "- 🟩 Track every trade with precision\n"
-            "- record entries, exits, position sizing, risk/reward, and notes\n"
-            "- 📊 Visualize performance instantly\n"
-            "- 📈 Charts, P&L summaries, and trend insights in one dashboard"
+            "- 🟩 Track every trade with precision - record entries, exits, position sizing, risk/reward, and notes\n"
+            "- 📊 Visualize performance instantly - Charts, P&L summaries, and trend insights in one dashboard"
         )
 
         st.markdown("---")
