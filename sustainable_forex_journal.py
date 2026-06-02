@@ -669,12 +669,23 @@ def render_enrollment_page():
     c1, c2 = st.columns([2, 1])
     with c1:
         st.markdown("## Journal Your Trading Journey.")
-        st.write("Forex Tracker Pro Ultimate helps serious traders capture every move, stay accountable, and improve performance with an intuitive journal built for the subscription economy. Whether you're a discretionary trader or systematically executing Smart Money concepts, this journal is designed to grow with you.")
+        st.write("Forex Tracker Pro Ultimate helps serious traders capture every move, stay accountable, and improve performance with an intuitive journal. Whether you're a discretionary trader or systematically executing Smart Money concepts, this journal is designed to grow with you.")
 
         st.markdown("### Why traders choose this Journal")
         st.markdown(
-            "- 🟩 Track every trade with precision - record entries, exits, position sizing, risk/reward, and notes\n"
-            "- 📊 Visualize performance instantly - Charts, P&L summaries, and trend insights in one dashboard"
+            "- 🧠 Psychology tracking to capture mood, discipline, confidence, and emotional triggers\n"
+            "- 🎯 Goal setting for daily, weekly, and monthly trading targets\n"
+            "- 🔍 Trade review that forces accountability and improves decision-making\n"
+            "- 🛡️ Risk management tracking for position sizing, stop loss, and reward/risk discipline\n"
+            "- 📈 Performance analytics that turn intuition into real trading data\n"
+            "- 📸 Screenshot uploads to capture charts, setups, and market conditions\n"
+        )
+
+        st.markdown("### Why this makes the Journal stronger")
+        st.markdown(
+            "- Traders stop trading from memory and start trading from evidence.\n"
+            "- Emotional patterns become visible and improvable instead of hidden and repeated.\n"
+            "- Goals and progress turn habits into momentum, not random setups.\n"
         )
 
         st.markdown("---")
