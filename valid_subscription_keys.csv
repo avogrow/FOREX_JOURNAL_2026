@@ -1,0 +1,3 @@
+key,user,email,plan,expires,active
+PRO-USER-123,Alice,alice@example.com,monthly,2026-12-31,TRUE
+PRO-USER-456,Bob,bob@example.com,annual,2027-05-31,TRUE

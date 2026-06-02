@@ -1,0 +1,17 @@
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.idea/
+.vscode/
+.forecast/
+
+# Local app state
+forex_tracker.db
+screenshots/
+
+# Streamlit secrets
+.streamlit/secrets.toml

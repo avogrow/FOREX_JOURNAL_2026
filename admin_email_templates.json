@@ -1,0 +1,18 @@
+{
+  "add": {
+    "subject": "Subscription key added: {key}",
+    "body": "Admin {admin} added key {key} for user {user} ({email}) plan={plan} expires={expires}"
+  },
+  "update": {
+    "subject": "Subscription key updated: {key}",
+    "body": "Admin {admin} updated key {key}: user={user} email={email} plan={plan} expires={expires} active={active}"
+  },
+  "remove": {
+    "subject": "Subscription key removed: {key}",
+    "body": "Admin {admin} removed key {key}"
+  },
+  "otp": {
+    "subject": "Your admin login code",
+    "body": "Your admin login code is: {code} (valid for 10 minutes)"
+  }
+}

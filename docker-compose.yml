@@ -1,0 +1,28 @@
+version: '3.9'
+
+services:
+  app:
+    build: .
+    ports:
+      - "8501:8501"
+    volumes:
+      - .:/app:cached
+      - ./screenshots:/app/screenshots
+    environment:
+      - ADMIN_KEY
+      - ADMIN_NOTIFICATION_EMAIL
+      - SUBSCRIPTION_PAYMENT_LINK
+      - SUBSCRIPTION_BACKEND_URL
+      - SUBSCRIPTION_KEY_HASH_SECRET
+      - VALID_SUBSCRIPTION_KEYS
+    depends_on:
+      - nginx
+
+  nginx:
+    image: nginx:stable-alpine
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - app
