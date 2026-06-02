@@ -1388,32 +1388,32 @@ with dashboard:
     c1,c2,c3,c4,c5,c6 = st.columns(6)
 
     c1.metric(
-        "Net Profit",
+        "💰 Net Profit",
         f"${metrics['total_profit']:,.2f}"
     )
 
     c2.metric(
-        "Trades",
+        "🎯 Trades",
         metrics["total_trades"]
     )
 
     c3.metric(
-        "Win Rate",
+        "🏆 Win Rate",
         f"{metrics['win_rate']:.1f}%"
     )
 
     c4.metric(
-        "Profit Factor",
+        "📈 Profit Factor",
         round(metrics["profit_factor"],2)
     )
 
     c5.metric(
-        "Expectancy",
+        "⚡ Expectancy",
         f"${metrics['expectancy']:.2f}"
     )
 
     c6.metric(
-        "Average R",
+        "📊 Average R",
         round(metrics["avg_r"],2)
     )
 
@@ -1425,32 +1425,32 @@ with dashboard:
     c1,c2,c3,c4,c5,c6 = st.columns(6)
 
     c1.metric(
-        "Largest Win",
+        "🥇 Largest Win",
         f"${metrics['largest_win']:,.2f}"
     )
 
     c2.metric(
-        "Largest Loss",
+        "🥉 Largest Loss",
         f"${metrics['largest_loss']:,.2f}"
     )
 
     c3.metric(
-        "Avg Winner",
+        "📈 Avg Winner",
         f"${metrics['avg_win']:,.2f}"
     )
 
     c4.metric(
-        "Avg Loser",
+        "📉 Avg Loser",
         f"${metrics['avg_loss']:,.2f}"
     )
 
     c5.metric(
-        "Max DD",
+        "🔻 Max DD",
         f"${metrics['max_dd']:,.2f}"
     )
 
     c6.metric(
-        "Recovery Factor",
+        "🔄 Recovery Factor",
         round(metrics["recovery_factor"],2)
     )
 
@@ -1462,22 +1462,22 @@ with dashboard:
     c1,c2,c3,c4 = st.columns(4)
 
     c1.metric(
-        "Wins",
+        "✅ Wins",
         metrics["wins"]
     )
 
     c2.metric(
-        "Losses",
+        "❌ Losses",
         metrics["losses"]
     )
 
     c3.metric(
-        "Max Win Streak",
+        "🔥 Max Win Streak",
         metrics["max_win_streak"]
     )
 
     c4.metric(
-        "Max Loss Streak",
+        "⚠️ Max Loss Streak",
         metrics["max_loss_streak"]
     )
 
@@ -2195,8 +2195,27 @@ with journal:
         # ==========================
         # SCREENSHOTS
         # ==========================
-        # Screenshot upload feature removed - users must manually key in data
+        st.markdown("### Screenshot Upload")
+
+        uploaded_screenshot = st.file_uploader(
+            "Upload a PNG, JPG, or JPEG screenshot of the trade.",
+            type=["png", "jpg", "jpeg"]
+        )
+
         screenshot_path = ""
+        if uploaded_screenshot is not None:
+            screenshot_filename = (
+                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
+                f"{secrets.token_hex(4)}_{uploaded_screenshot.name}"
+            )
+            screenshot_path = os.path.join("screenshots", screenshot_filename)
+            try:
+                with open(screenshot_path, "wb") as file:
+                    file.write(uploaded_screenshot.getbuffer())
+                st.image(screenshot_path, caption="Uploaded screenshot", use_column_width=True)
+            except Exception as exc:
+                st.error(f"Unable to save screenshot: {exc}")
+                screenshot_path = ""
 
         # ==========================
         # NOTES
