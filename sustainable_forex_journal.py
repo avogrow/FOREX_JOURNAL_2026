@@ -1939,6 +1939,14 @@ with journal:
                 "Profit ($)",
                 value=0.0
             )
+            
+            commission = st.number_input(
+                "Commission ($)",
+                value=0.0,
+                min_value=0.0
+            )
+            
+            net_profit = profit - commission
 
         # ==========================
         # RISK MANAGEMENT
@@ -1967,15 +1975,22 @@ with journal:
             )
 
         r_multiple = (
-            profit / risk
+            net_profit / risk
             if risk > 0
             else 0
         )
 
-        st.metric(
-            "Calculated R Multiple",
-            round(r_multiple,2)
-        )
+        col1, col2 = st.columns(2)
+        with col1:
+            st.metric(
+                "Net Profit/Loss",
+                f"${net_profit:.2f}"
+            )
+        with col2:
+            st.metric(
+                "Calculated R Multiple",
+                round(r_multiple, 2)
+            )
 
         # ==========================
         # SESSION TRACKING
@@ -2196,7 +2211,7 @@ with journal:
         # AI REVIEW
         # ==========================
         ai_review = generate_ai_review(
-            profit,
+            net_profit,
             setup_score,
             ",".join(mistakes),
             session,
@@ -2254,7 +2269,7 @@ with journal:
                     entry,
                     exit_price,
                     lot,
-                    profit,
+                    net_profit,
                     setup,
                     notes,
                     risk,
@@ -2297,7 +2312,7 @@ New Trade Logged
 {symbol}
 {direction}
 
-Profit: ${profit:.2f}
+Net Profit: ${net_profit:.2f}
 R Multiple: {r_multiple:.2f}
 
 Setup Grade: {grade}
