@@ -2279,9 +2279,6 @@ st.divider()
 # BULK IMPORT FROM CSV / XLSX
 # ==================================
 # Bulk import feature removed - users must manually key in data
-    
-    except Exception as e:
-        st.error(f"Error reading CSV: {str(e)}")
 
 st.divider()
 
