@@ -33,7 +33,7 @@ os.makedirs("screenshots", exist_ok=True)
 # ==================================
 VALID_KEYS_ENV = os.getenv("VALID_SUBSCRIPTION_KEYS", "")
 SUBSCRIPTION_LINK = os.getenv("SUBSCRIPTION_PAYMENT_LINK", "")
-WHOP_CHECKOUT_URL = os.getenv("WHOP_CHECKOUT_URL", "")
+WHOP_CHECKOUT_URL = os.getenv("WHOP_CHECKOUT_URL", "https://whop.com/sustainable-journal")
 SUBSCRIPTION_BACKEND_URL = os.getenv("SUBSCRIPTION_BACKEND_URL", "")
 WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET", "")
 ONE_TIME_PRICE = os.getenv("ONE_TIME_PRICE", "10")
