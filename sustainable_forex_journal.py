@@ -939,6 +939,18 @@ def load_trades():
 
     return df
 
+def parse_time_string(time_str):
+    try:
+        if pd.isna(time_str) or not str(time_str).strip():
+            return datetime.now().time()
+        try:
+            return datetime.strptime(str(time_str), "%H:%M:%S").time()
+        except ValueError:
+            return datetime.strptime(str(time_str), "%H:%M").time()
+    except Exception:
+        return datetime.now().time()
+
+
 def calc_metrics(df):
 
     if df.empty:
@@ -2339,432 +2351,474 @@ Session: {session}
                 """
             )
 
-st.divider()
+    st.divider()
 
-# ==================================
-# BULK IMPORT FROM CSV / XLSX
-# ==================================
-# Bulk import feature removed - users must manually key in data
+    # ==================================
+    # BULK IMPORT FROM CSV / XLSX
+    # ==================================
+    # Bulk import feature removed - users must manually key in data
 
-st.divider()
+    st.divider()
 
-if not df.empty:
+    if not df.empty:
 
-    trade_id = st.selectbox(
-        "Select Trade",
-        df["id"]
-    )
-
-    trade = df[
-        df["id"] == trade_id
-    ].iloc[0]
-
-    c1,c2 = st.columns([1,2])
-
-    with c1:
-
-        st.write(
-            f"Symbol: {trade['symbol']}"
+        trade_id = st.selectbox(
+            "Select Trade",
+            df["id"]
         )
 
-        st.write(
-            f"Profit: ${trade['profit']}"
-        )
+        trade = df[
+            df["id"] == trade_id
+        ].iloc[0]
 
-        st.write(
-            f"R Multiple: {trade['r_multiple']}"
-        )
+        c1,c2 = st.columns([1,2])
 
-        st.write(
-            f"Session: {trade['session']}"
-        )
+        with c1:
 
-        st.write(
-            f"Score: {trade['setup_score']}/6"
-        )
+            st.write(
+                f"Symbol: {trade['symbol']}"
+            )
 
-    with c2:
+            st.write(
+                f"Profit: ${trade['profit']}"
+            )
 
-        if trade["screenshot"]:
+            st.write(
+                f"R Multiple: {trade['r_multiple']}"
+            )
 
-            if os.path.exists(
-                trade["screenshot"]
-            ):
+            st.write(
+                f"Session: {trade['session']}"
+            )
 
-                st.image(
-                    trade["screenshot"],
-                    use_container_width=True
-                )
+            st.write(
+                f"Score: {trade['setup_score']}/6"
+            )
 
-    st.info(
-        trade["ai_review"]
-    )
+        with c2:
 
-st.divider()
+            if trade["screenshot"]:
 
-st.subheader("📚 Trade History")
+                if os.path.exists(
+                    trade["screenshot"]
+                ):
 
-if not df.empty:
-
-    history_cols = [
-
-        "date",
-        "symbol",
-        "direction",
-        "profit",
-        "r_multiple",
-        "session",
-        "setup_score",
-        "duration"
-
-    ]
-
-    st.dataframe(
-        df[history_cols],
-        use_container_width=True
-    )
-    
-    # ==================================
-    # COMPOUNDING TAB
-    # ==================================
-    with compounding:
-        st.markdown("## 💰 Compounding Growth Simulator")
-        st.markdown("Simulate your account growth with period-by-period breakdown, just like Sustainable's compounding tools.")
-        col1, col2, col3, col4 = st.columns(4)
-        with col1:
-            initial_balance = st.number_input("Initial Balance ($)", value=1000.0, min_value=0.0, step=100.0)
-        with col2:
-            percent_return = st.number_input("% Return per Period", value=2.0, min_value=-100.0, max_value=100.0, step=0.1)
-        with col3:
-            periods = st.number_input("Number of Periods", value=12, min_value=1, step=1)
-        with col4:
-            add_contrib = st.number_input("Add per Period ($)", value=0.0, min_value=0.0, step=10.0)
-
-        data = []
-        balance = initial_balance
-        for i in range(1, int(periods)+1):
-            growth = balance * (percent_return / 100)
-            balance += growth + add_contrib
-            data.append({"Period": i, "Growth": growth, "Contribution": add_contrib, "Balance": balance})
-
-        df_comp = pd.DataFrame(data)
-        st.line_chart(df_comp["Balance"], use_container_width=True)
-        st.dataframe(df_comp, use_container_width=True, hide_index=True)
-        st.success(f"**Final Balance after {int(periods)} periods: ${balance:,.2f}**")
-
-    # ==================================
-    # GOALS TAB
-    # ==================================
-    with goals:
-        st.markdown("## 🎯 My Trading Goals")
-        st.markdown("Set, track, and visualize your trading goals in a Sustainable-inspired format.")
-        if 'goals_list' not in st.session_state:
-            st.session_state['goals_list'] = []
-        with st.form("goal_form"):
-            col1, col2, col3 = st.columns([5,2,2])
-            with col1:
-                new_goal = st.text_input("Goal Description")
-            with col2:
-                target_date = st.date_input("Target Date", value=datetime.now().date())
-            with col3:
-                progress = st.slider("Progress %", min_value=0, max_value=100, value=0)
-            submitted = st.form_submit_button("Add Goal")
-            if submitted and new_goal:
-                st.session_state['goals_list'].append({"goal": new_goal, "date": str(target_date), "progress": progress})
-        for idx, goal in enumerate(st.session_state['goals_list']):
-            st.markdown(f"**{goal['goal']}**  ")
-            st.progress(goal['progress'])
-            st.caption(f"Target: {goal['date']}")
-            col1, col2 = st.columns([1,1])
-            with col1:
-                new_progress = st.slider(f"Update Progress for Goal {idx+1}", min_value=0, max_value=100, value=goal['progress'], key=f'progress_{idx}')
-                if new_progress != goal['progress']:
-                    st.session_state['goals_list'][idx]['progress'] = new_progress
-            with col2:
-                if st.button("❌ Remove", key=f"del_goal_{idx}"):
-                    st.session_state['goals_list'].pop(idx)
-                    st.rerun()
-
-    # ==================================
-    # PSYCHOLOGY TAB
-    # ==================================
-    with psychology:
-        st.markdown("## 🧠 Trading Psychology & Mindset")
-        st.markdown("Log your mindset, track your mood, and get actionable psychology prompts.")
-        moods = ["😃 Great", "🙂 Good", "😐 Neutral", "😟 Stressed", "😢 Down"]
-        if 'psych_journal' not in st.session_state:
-            st.session_state['psych_journal'] = []
-        st.markdown("### Today's Mood")
-        mood = st.radio("How do you feel about your trading today?", moods, horizontal=True)
-        st.markdown("---")
-        st.markdown("### Quick Reflection Prompts")
-        prompts = [
-            "What did I do well today?",
-            "What challenged me emotionally?",
-            "How did I handle losses or wins?",
-            "What will I improve next session?"
-        ]
-        for prompt in prompts:
-            st.text_input(prompt, key=f"prompt_{prompt}")
-        st.markdown("---")
-        st.markdown("### Psychology Journal")
-        with st.form("psych_form"):
-            psych_note = st.text_area("Write a detailed psychology note or reflection")
-            submitted = st.form_submit_button("Add Note")
-            if submitted and psych_note:
-                st.session_state['psych_journal'].append({"note": psych_note, "date": str(datetime.now().date()), "mood": mood})
-        for entry in reversed(st.session_state['psych_journal']):
-            st.write(f"{entry['date']} {entry['mood']}: {entry['note']}")
-
-    # ==================================
-    # ADMIN TAB
-    # ==================================
-    with admin:
-        st.markdown("## 🔧 Admin - Subscription Keys")
-
-        admin_key_env = os.getenv("ADMIN_KEY", "")
-        try:
-            admin_key_secret = st.secrets.get("admin_key", "")
-        except Exception:
-            admin_key_secret = ""
-
-        admin_input = st.text_input("Admin Key (enter to manage keys)", type="password", key="admin_input")
-
-        if st.button("Login as Admin"):
-            if admin_input and (admin_input == admin_key_env or admin_input == admin_key_secret):
-                st.session_state["is_admin"] = True
-                st.session_state["admin_user"] = admin_input
-                st.rerun()
-            else:
-                st.error("Invalid admin key.")
-
-        # Email-based admin 2FA
-        st.markdown("---")
-        st.markdown("### Admin Email 2FA")
-        send_code = st.button("Send admin login code to configured admin email")
-        templates = load_email_templates()
-        if send_code:
-            admin_notify = os.getenv("ADMIN_NOTIFICATION_EMAIL", "")
-            if not admin_notify:
-                st.error("No ADMIN_NOTIFICATION_EMAIL configured in env.")
-            elif not can_send_admin_otp():
-                st.error("Too many OTP requests. Please wait 15 minutes before requesting a new code.")
-            else:
-                code = str(int.from_bytes(os.urandom(3), "big") % 1000000).zfill(6)
-                st.session_state["admin_otp"] = code
-                st.session_state["admin_otp_time"] = datetime.now().isoformat()
-                record_admin_otp_request()
-                tpl = templates.get("otp", {})
-                subject = tpl.get("subject", "Your admin login code")
-                body = tpl.get("body", "Your admin login code is: {code}").format(code=code)
-                ok = send_admin_email(subject, body)
-                if ok:
-                    st.success(f"OTP sent to {admin_notify}")
-                else:
-                    err = get_last_email_error()
-                    if err:
-                        st.error(f"Failed to send OTP email. {err}")
-                    else:
-                        st.error("Failed to send OTP email. Check SMTP settings.")
-
-        otp_input = st.text_input("Enter admin code", key="otp_input")
-        if st.button("Verify code"):
-            otp = st.session_state.get("admin_otp")
-            otp_time = st.session_state.get("admin_otp_time")
-            if not otp:
-                st.error("No code sent. Click 'Send admin login code' first.")
-            elif not can_attempt_admin_otp_verify():
-                st.error("Too many invalid OTP attempts. Please wait 10 minutes and try again.")
-            else:
-                try:
-                    sent_time = datetime.fromisoformat(otp_time)
-                except Exception:
-                    sent_time = None
-
-                if otp_input == otp and sent_time and datetime.now() - sent_time <= timedelta(minutes=10):
-                    st.session_state["is_admin"] = True
-                    st.session_state["admin_user"] = st.session_state.get("admin_user", "email_admin")
-                    st.success("Admin verified via email OTP")
-                    st.rerun()
-                else:
-                    record_admin_otp_verify_attempt()
-                    st.error("Invalid or expired code.")
-
-        if not st.session_state.get("is_admin", False):
-            st.warning("Admin access required to manage subscription keys.")
-        else:
-            st.success("Admin mode enabled")
-
-            st.markdown("### Email notification status")
-            last_email_error = get_last_email_error()
-            if last_email_error:
-                st.warning(f"Last email error: {last_email_error}")
-            else:
-                st.info("No recent email errors logged. Email notifications are either working or not yet exercised.")
-
-            db_keys = get_all_db_subscription_keys()
-            fallback_keys = get_subscription_keys_map() if not db_keys else {}
-
-            st.markdown("### Current subscription key metadata")
-            if db_keys:
-                try:
-                    st.dataframe(pd.DataFrame(db_keys).fillna(""), use_container_width=True)
-                except Exception:
-                    st.write(db_keys)
-            else:
-                st.info("No database subscription keys found. Falling back to file-based keys.")
-                try:
-                    df_keys = pd.DataFrame.from_dict(fallback_keys, orient="index")
-                    st.dataframe(df_keys.fillna(""), use_container_width=True)
-                except Exception:
-                    st.write(fallback_keys)
-
-            st.markdown("### Backup / Export")
-            if st.button("Export DB subscription backup"):
-                if export_subscription_keys_backup():
-                    st.success("Subscription key backup exported to backup_subscription_keys.json/csv")
-                else:
-                    st.error("Failed to export subscription keys backup.")
-
-            st.markdown("### Admin Audit Log")
-            if os.path.exists("subscription_admin_audit.log"):
-                try:
-                    with open("subscription_admin_audit.log", "r", encoding="utf-8") as f:
-                        lines = [json.loads(l) for l in f.read().splitlines() if l.strip()]
-                        lines = list(reversed(lines))
-                        max_show = st.number_input("Entries to show", min_value=1, max_value=500, value=50)
-                        show = lines[:int(max_show)]
-                        st.dataframe(pd.DataFrame(show), use_container_width=True)
-                        if st.button("Download audit log"):
-                            with open("subscription_admin_audit.log", "rb") as fh:
-                                st.download_button("Download log", fh, file_name="subscription_admin_audit.log")
-                except Exception:
-                    st.error("Unable to read audit log.")
-            else:
-                st.info("No audit log found yet.")
-
-            st.markdown("### Pending registration requests")
-            registration_requests = load_registration_requests()
-            if registration_requests:
-                try:
-                    st.dataframe(
-                        pd.DataFrame(list(reversed(registration_requests))).fillna(""),
+                    st.image(
+                        trade["screenshot"],
                         use_container_width=True
                     )
-                except Exception:
-                    st.write(list(reversed(registration_requests)))
+
+        st.markdown("### Edit Trade Timing")
+
+        edit_col1, edit_col2 = st.columns(2)
+
+        with edit_col1:
+
+            editable_entry_time = st.time_input(
+                "Entry Time",
+                value=parse_time_string(trade.get("entry_time", "")),
+                key=f"edit_entry_time_{trade_id}"
+            )
+
+        with edit_col2:
+
+            editable_exit_time = st.time_input(
+                "Exit Time",
+                value=parse_time_string(trade.get("exit_time", "")),
+                key=f"edit_exit_time_{trade_id}"
+            )
+
+        if st.button("Update Trade Time", key=f"update_trade_time_{trade_id}"):
+
+            updated_duration = (
+                datetime.combine(datetime.today(), editable_exit_time)
+                - datetime.combine(datetime.today(), editable_entry_time)
+            ).seconds / 60
+
+            cursor.execute(
+                "UPDATE trades SET entry_time = ?, exit_time = ?, duration = ? WHERE id = ?",
+                (
+                    str(editable_entry_time),
+                    str(editable_exit_time),
+                    updated_duration,
+                    int(trade_id)
+                )
+            )
+            conn.commit()
+            st.success("Trade timing updated successfully.")
+            st.experimental_rerun()
+
+        st.info(
+            trade["ai_review"]
+        )
+
+        st.divider()
+
+        st.subheader("📚 Trade History")
+
+        if not df.empty:
+
+            history_cols = [
+
+                "date",
+                "symbol",
+                "direction",
+                "profit",
+                "r_multiple",
+                "session",
+                "setup_score",
+                "entry_time",
+                "exit_time",
+                "duration"
+
+            ]
+
+            st.dataframe(
+                df[history_cols],
+                use_container_width=True
+            )
+    
+# ==================================
+# COMPOUNDING TAB
+# ==================================
+with compounding:
+    st.markdown("## 💰 Compounding Growth Simulator")
+    st.markdown("Simulate your account growth with period-by-period breakdown, just like Sustainable's compounding tools.")
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        initial_balance = st.number_input("Initial Balance ($)", value=1000.0, min_value=0.0, step=100.0)
+    with col2:
+        percent_return = st.number_input("% Return per Period", value=2.0, min_value=-100.0, max_value=100.0, step=0.1)
+    with col3:
+        periods = st.number_input("Number of Periods", value=12, min_value=1, step=1)
+    with col4:
+        add_contrib = st.number_input("Add per Period ($)", value=0.0, min_value=0.0, step=10.0)
+
+    data = []
+    balance = initial_balance
+    for i in range(1, int(periods)+1):
+        growth = balance * (percent_return / 100)
+        balance += growth + add_contrib
+        data.append({"Period": i, "Growth": growth, "Contribution": add_contrib, "Balance": balance})
+
+    df_comp = pd.DataFrame(data)
+    st.line_chart(df_comp["Balance"], use_container_width=True)
+    st.dataframe(df_comp, use_container_width=True, hide_index=True)
+    st.success(f"**Final Balance after {int(periods)} periods: ${balance:,.2f}**")
+
+# ==================================
+# GOALS TAB
+# ==================================
+with goals:
+    st.markdown("## 🎯 My Trading Goals")
+    st.markdown("Set, track, and visualize your trading goals in a Sustainable-inspired format.")
+    if 'goals_list' not in st.session_state:
+        st.session_state['goals_list'] = []
+    with st.form("goal_form"):
+        col1, col2, col3 = st.columns([5,2,2])
+        with col1:
+            new_goal = st.text_input("Goal Description")
+        with col2:
+            target_date = st.date_input("Target Date", value=datetime.now().date())
+        with col3:
+            progress = st.slider("Progress %", min_value=0, max_value=100, value=0)
+        submitted = st.form_submit_button("Add Goal")
+        if submitted and new_goal:
+            st.session_state['goals_list'].append({"goal": new_goal, "date": str(target_date), "progress": progress})
+    for idx, goal in enumerate(st.session_state['goals_list']):
+        st.markdown(f"**{goal['goal']}**  ")
+        st.progress(goal['progress'])
+        st.caption(f"Target: {goal['date']}")
+        col1, col2 = st.columns([1,1])
+        with col1:
+            new_progress = st.slider(f"Update Progress for Goal {idx+1}", min_value=0, max_value=100, value=goal['progress'], key=f'progress_{idx}')
+            if new_progress != goal['progress']:
+                st.session_state['goals_list'][idx]['progress'] = new_progress
+        with col2:
+            if st.button("❌ Remove", key=f"del_goal_{idx}"):
+                st.session_state['goals_list'].pop(idx)
+                st.rerun()
+
+# ==================================
+# PSYCHOLOGY TAB
+# ==================================
+with psychology:
+    st.markdown("## 🧠 Trading Psychology & Mindset")
+    st.markdown("Log your mindset, track your mood, and get actionable psychology prompts.")
+    moods = ["😃 Great", "🙂 Good", "😐 Neutral", "😟 Stressed", "😢 Down"]
+    if 'psych_journal' not in st.session_state:
+        st.session_state['psych_journal'] = []
+    st.markdown("### Today's Mood")
+    mood = st.radio("How do you feel about your trading today?", moods, horizontal=True)
+    st.markdown("---")
+    st.markdown("### Quick Reflection Prompts")
+    prompts = [
+        "What did I do well today?",
+        "What challenged me emotionally?",
+        "How did I handle losses or wins?",
+        "What will I improve next session?"
+    ]
+    for prompt in prompts:
+        st.text_input(prompt, key=f"prompt_{prompt}")
+    st.markdown("---")
+    st.markdown("### Psychology Journal")
+    with st.form("psych_form"):
+        psych_note = st.text_area("Write a detailed psychology note or reflection")
+        submitted = st.form_submit_button("Add Note")
+        if submitted and psych_note:
+            st.session_state['psych_journal'].append({"note": psych_note, "date": str(datetime.now().date()), "mood": mood})
+    for entry in reversed(st.session_state['psych_journal']):
+        st.write(f"{entry['date']} {entry['mood']}: {entry['note']}")
+
+# ==================================
+# ADMIN TAB
+# ==================================
+with admin:
+    st.markdown("## 🔧 Admin - Subscription Keys")
+
+    admin_key_env = os.getenv("ADMIN_KEY", "")
+    try:
+        admin_key_secret = st.secrets.get("admin_key", "")
+    except Exception:
+        admin_key_secret = ""
+
+    admin_input = st.text_input("Admin Key (enter to manage keys)", type="password", key="admin_input")
+
+    if st.button("Login as Admin"):
+        if admin_input and (admin_input == admin_key_env or admin_input == admin_key_secret):
+            st.session_state["is_admin"] = True
+            st.session_state["admin_user"] = admin_input
+            st.rerun()
+        else:
+            st.error("Invalid admin key.")
+
+    # Email-based admin 2FA
+    st.markdown("---")
+    st.markdown("### Admin Email 2FA")
+    send_code = st.button("Send admin login code to configured admin email")
+    templates = load_email_templates()
+    if send_code:
+        admin_notify = os.getenv("ADMIN_NOTIFICATION_EMAIL", "")
+        if not admin_notify:
+            st.error("No ADMIN_NOTIFICATION_EMAIL configured in env.")
+        elif not can_send_admin_otp():
+            st.error("Too many OTP requests. Please wait 15 minutes before requesting a new code.")
+        else:
+            code = str(int.from_bytes(os.urandom(3), "big") % 1000000).zfill(6)
+            st.session_state["admin_otp"] = code
+            st.session_state["admin_otp_time"] = datetime.now().isoformat()
+            record_admin_otp_request()
+            tpl = templates.get("otp", {})
+            subject = tpl.get("subject", "Your admin login code")
+            body = tpl.get("body", "Your admin login code is: {code}").format(code=code)
+            ok = send_admin_email(subject, body)
+            if ok:
+                st.success(f"OTP sent to {admin_notify}")
             else:
-                st.info("No registration requests have been submitted yet.")
-
-            st.markdown("### Email Templates")
-            templates = load_email_templates()
-            tpl_name = st.selectbox("Template", list(templates.keys()))
-            tpl = templates.get(tpl_name, {})
-            subj = st.text_input("Subject", value=tpl.get("subject", ""), key=f"tpl_subj_{tpl_name}")
-            body = st.text_area("Body", value=tpl.get("body", ""), key=f"tpl_body_{tpl_name}")
-            if st.button("Save template"):
-                templates[tpl_name] = {"subject": subj, "body": body}
-                if save_email_templates(templates):
-                    st.success("Template saved")
+                err = get_last_email_error()
+                if err:
+                    st.error(f"Failed to send OTP email. {err}")
                 else:
-                    st.error("Failed to save template")
+                    st.error("Failed to send OTP email. Check SMTP settings.")
 
-            st.markdown("### Add / Update Key")
-            with st.form("admin_add_form"):
-                new_key = st.text_input("Key")
-                new_user = st.text_input("User")
-                new_email = st.text_input("Email")
-                new_plan = st.text_input("Plan")
-                new_expires = st.text_input("Expires (YYYY-MM-DD)")
-                new_active = st.checkbox("Active", value=True)
-                submitted = st.form_submit_button("Save Key")
+    otp_input = st.text_input("Enter admin code", key="otp_input")
+    if st.button("Verify code"):
+        otp = st.session_state.get("admin_otp")
+        otp_time = st.session_state.get("admin_otp_time")
+        if not otp:
+            st.error("No code sent. Click 'Send admin login code' first.")
+        elif not can_attempt_admin_otp_verify():
+            st.error("Too many invalid OTP attempts. Please wait 10 minutes and try again.")
+        else:
+            try:
+                sent_time = datetime.fromisoformat(otp_time)
+            except Exception:
+                sent_time = None
 
-                if submitted and new_key:
-                    ok = set_db_subscription_key(new_key, new_user, new_email, new_plan, new_expires, new_active)
+            if otp_input == otp and sent_time and datetime.now() - sent_time <= timedelta(minutes=10):
+                st.session_state["is_admin"] = True
+                st.session_state["admin_user"] = st.session_state.get("admin_user", "email_admin")
+                st.success("Admin verified via email OTP")
+                st.rerun()
+            else:
+                record_admin_otp_verify_attempt()
+                st.error("Invalid or expired code.")
+
+    if not st.session_state.get("is_admin", False):
+        st.warning("Admin access required to manage subscription keys.")
+    else:
+        st.success("Admin mode enabled")
+
+        st.markdown("### Email notification status")
+        last_email_error = get_last_email_error()
+        if last_email_error:
+            st.warning(f"Last email error: {last_email_error}")
+        else:
+            st.info("No recent email errors logged. Email notifications are either working or not yet exercised.")
+
+        db_keys = get_all_db_subscription_keys()
+        fallback_keys = get_subscription_keys_map() if not db_keys else {}
+
+        st.markdown("### Current subscription key metadata")
+        if db_keys:
+            try:
+                st.dataframe(pd.DataFrame(db_keys).fillna(""), use_container_width=True)
+            except Exception:
+                st.write(db_keys)
+        else:
+            st.info("No database subscription keys found. Falling back to file-based keys.")
+            try:
+                df_keys = pd.DataFrame.from_dict(fallback_keys, orient="index")
+                st.dataframe(df_keys.fillna(""), use_container_width=True)
+            except Exception:
+                st.write(fallback_keys)
+
+        st.markdown("### Backup / Export")
+        if st.button("Export DB subscription backup"):
+            if export_subscription_keys_backup():
+                st.success("Subscription key backup exported to backup_subscription_keys.json/csv")
+            else:
+                st.error("Failed to export subscription keys backup.")
+
+        st.markdown("### Admin Audit Log")
+        if os.path.exists("subscription_admin_audit.log"):
+            try:
+                with open("subscription_admin_audit.log", "r", encoding="utf-8") as f:
+                    lines = [json.loads(l) for l in f.read().splitlines() if l.strip()]
+                    lines = list(reversed(lines))
+                    max_show = st.number_input("Entries to show", min_value=1, max_value=500, value=50)
+                    show = lines[:int(max_show)]
+                    st.dataframe(pd.DataFrame(show), use_container_width=True)
+                    if st.button("Download audit log"):
+                        with open("subscription_admin_audit.log", "rb") as fh:
+                            st.download_button("Download log", fh, file_name="subscription_admin_audit.log")
+            except Exception:
+                st.error("Unable to read audit log.")
+        else:
+            st.info("No audit log found yet.")
+
+        st.markdown("### Pending registration requests")
+        registration_requests = load_registration_requests()
+        if registration_requests:
+            try:
+                st.dataframe(
+                    pd.DataFrame(list(reversed(registration_requests))).fillna(""),
+                    use_container_width=True
+                )
+            except Exception:
+                st.write(list(reversed(registration_requests)))
+        else:
+            st.info("No registration requests have been submitted yet.")
+
+        st.markdown("### Email Templates")
+        templates = load_email_templates()
+        tpl_name = st.selectbox("Template", list(templates.keys()))
+        tpl = templates.get(tpl_name, {})
+        subj = st.text_input("Subject", value=tpl.get("subject", ""), key=f"tpl_subj_{tpl_name}")
+        body = st.text_area("Body", value=tpl.get("body", ""), key=f"tpl_body_{tpl_name}")
+        if st.button("Save template"):
+            templates[tpl_name] = {"subject": subj, "body": body}
+            if save_email_templates(templates):
+                st.success("Template saved")
+            else:
+                st.error("Failed to save template")
+
+        st.markdown("### Add / Update Key")
+        with st.form("admin_add_form"):
+            new_key = st.text_input("Key")
+            new_user = st.text_input("User")
+            new_email = st.text_input("Email")
+            new_plan = st.text_input("Plan")
+            new_expires = st.text_input("Expires (YYYY-MM-DD)")
+            new_active = st.checkbox("Active", value=True)
+            submitted = st.form_submit_button("Save Key")
+
+            if submitted and new_key:
+                ok = set_db_subscription_key(new_key, new_user, new_email, new_plan, new_expires, new_active)
+                if ok:
+                    st.success("Key saved to database")
+                    admin_user = st.session_state.get("admin_user", "admin")
+                    log_admin_action("add", new_key, {
+                        "user": new_user,
+                        "email": new_email,
+                        "plan": new_plan,
+                        "expires": new_expires,
+                        "active": new_active
+                    }, admin_user)
+                    tpl = load_email_templates().get("add", {})
+                    subject = tpl.get("subject", "Subscription key added: {key}").format(key=new_key)
+                    body = tpl.get("body", "Admin {admin} added key {key}").format(
+                        admin=admin_user,
+                        key=new_key,
+                        user=new_user,
+                        email=new_email,
+                        plan=new_plan,
+                        expires=new_expires
+                    )
+                    send_admin_email(subject, body)
+                    st.rerun()
+                else:
+                    st.error("Failed to save key to database.")
+
+        st.markdown("### Edit / Remove Key")
+        if db_keys:
+            options = [f"{entry['key_label']} | {entry['user']} | {entry['email']} | {entry['plan']}" for entry in db_keys]
+            option_map = {options[i]: entry['key_hash'] for i, entry in enumerate(db_keys)}
+            sel_label = st.selectbox("Select key to edit", options)
+            sel_hash = option_map.get(sel_label)
+            selected_meta = next((entry for entry in db_keys if entry['key_hash'] == sel_hash), None)
+
+            if selected_meta:
+                col1, col2 = st.columns(2)
+                with col1:
+                    e_user = st.text_input("User", value=selected_meta.get("user", ""), key="e_user")
+                    e_email = st.text_input("Email", value=selected_meta.get("email", ""), key="e_email")
+                    e_plan = st.text_input("Plan", value=selected_meta.get("plan", ""), key="e_plan")
+                with col2:
+                    e_expires = st.text_input("Expires (YYYY-MM-DD)", value=selected_meta.get("expires", ""), key="e_expires")
+                    e_active = st.checkbox("Active", value=selected_meta.get("active", True), key="e_active")
+
+                if st.button("Update Key"):
+                    ok = update_db_subscription_key(sel_hash, e_user, e_email, e_plan, e_expires, e_active)
                     if ok:
-                        st.success("Key saved to database")
+                        st.success("Key updated")
                         admin_user = st.session_state.get("admin_user", "admin")
-                        log_admin_action("add", new_key, {
-                            "user": new_user,
-                            "email": new_email,
-                            "plan": new_plan,
-                            "expires": new_expires,
-                            "active": new_active
+                        log_admin_action("update", sel_hash, {
+                            "user": e_user,
+                            "email": e_email,
+                            "plan": e_plan,
+                            "expires": e_expires,
+                            "active": e_active
                         }, admin_user)
-                        tpl = load_email_templates().get("add", {})
-                        subject = tpl.get("subject", "Subscription key added: {key}").format(key=new_key)
-                        body = tpl.get("body", "Admin {admin} added key {key}").format(
+                        tpl = load_email_templates().get("update", {})
+                        subject = tpl.get("subject", "Subscription key updated: {key}").format(key=selected_meta.get("key_label", sel_hash[:8]))
+                        body = tpl.get("body", "Admin {admin} updated key {key}").format(
                             admin=admin_user,
-                            key=new_key,
-                            user=new_user,
-                            email=new_email,
-                            plan=new_plan,
-                            expires=new_expires
+                            key=selected_meta.get("key_label", sel_hash[:8]),
+                            user=e_user,
+                            email=e_email,
+                            plan=e_plan,
+                            expires=e_expires,
+                            active=e_active
                         )
                         send_admin_email(subject, body)
                         st.rerun()
                     else:
-                        st.error("Failed to save key to database.")
+                        st.error("Failed to update key.")
 
-            st.markdown("### Edit / Remove Key")
-            if db_keys:
-                options = [f"{entry['key_label']} | {entry['user']} | {entry['email']} | {entry['plan']}" for entry in db_keys]
-                option_map = {options[i]: entry['key_hash'] for i, entry in enumerate(db_keys)}
-                sel_label = st.selectbox("Select key to edit", options)
-                sel_hash = option_map.get(sel_label)
-                selected_meta = next((entry for entry in db_keys if entry['key_hash'] == sel_hash), None)
-
-                if selected_meta:
-                    col1, col2 = st.columns(2)
-                    with col1:
-                        e_user = st.text_input("User", value=selected_meta.get("user", ""), key="e_user")
-                        e_email = st.text_input("Email", value=selected_meta.get("email", ""), key="e_email")
-                        e_plan = st.text_input("Plan", value=selected_meta.get("plan", ""), key="e_plan")
-                    with col2:
-                        e_expires = st.text_input("Expires (YYYY-MM-DD)", value=selected_meta.get("expires", ""), key="e_expires")
-                        e_active = st.checkbox("Active", value=selected_meta.get("active", True), key="e_active")
-
-                    if st.button("Update Key"):
-                        ok = update_db_subscription_key(sel_hash, e_user, e_email, e_plan, e_expires, e_active)
-                        if ok:
-                            st.success("Key updated")
-                            admin_user = st.session_state.get("admin_user", "admin")
-                            log_admin_action("update", sel_hash, {
-                                "user": e_user,
-                                "email": e_email,
-                                "plan": e_plan,
-                                "expires": e_expires,
-                                "active": e_active
-                            }, admin_user)
-                            tpl = load_email_templates().get("update", {})
-                            subject = tpl.get("subject", "Subscription key updated: {key}").format(key=selected_meta.get("key_label", sel_hash[:8]))
-                            body = tpl.get("body", "Admin {admin} updated key {key}").format(
-                                admin=admin_user,
-                                key=selected_meta.get("key_label", sel_hash[:8]),
-                                user=e_user,
-                                email=e_email,
-                                plan=e_plan,
-                                expires=e_expires,
-                                active=e_active
-                            )
-                            send_admin_email(subject, body)
-                            st.rerun()
-                        else:
-                            st.error("Failed to update key.")
-
-                    if st.button("Remove Key"):
-                        ok = delete_db_subscription_key(sel_hash)
-                        if ok:
-                            st.success("Key removed from database")
-                            admin_user = st.session_state.get("admin_user", "admin")
-                            log_admin_action("remove", sel_hash, selected_meta, admin_user)
-                            tpl = load_email_templates().get("remove", {})
-                            subject = tpl.get("subject", "Subscription key removed: {key}").format(key=selected_meta.get("key_label", sel_hash[:8]))
-                            body = tpl.get("body", "Admin {admin} removed key {key}").format(admin=admin_user, key=selected_meta.get("key_label", sel_hash[:8]))
-                            send_admin_email(subject, body)
-                            st.rerun()
-                        else:
-                            st.error("Failed to remove key.")
-            else:
-                st.info("No database-subscription keys to edit. Add a key above.")
+                if st.button("Remove Key"):
+                    ok = delete_db_subscription_key(sel_hash)
+                    if ok:
+                        st.success("Key removed from database")
+                        admin_user = st.session_state.get("admin_user", "admin")
+                        log_admin_action("remove", sel_hash, selected_meta, admin_user)
+                        tpl = load_email_templates().get("remove", {})
+                        subject = tpl.get("subject", "Subscription key removed: {key}").format(key=selected_meta.get("key_label", sel_hash[:8]))
+                        body = tpl.get("body", "Admin {admin} removed key {key}").format(admin=admin_user, key=selected_meta.get("key_label", sel_hash[:8]))
+                        send_admin_email(subject, body)
+                        st.rerun()
+                    else:
+                        st.error("Failed to remove key.")
+        else:
+            st.info("No database-subscription keys to edit. Add a key above.")
 
