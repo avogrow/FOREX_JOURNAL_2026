@@ -28,6 +28,34 @@ st.set_page_config(
 
 st.title("📊 Forex Tracker Pro Ultimate")
 
+TERMS_AND_CONDITIONS = '''
+Forex Tracker Pro is a personal trading journal and performance tracking tool. By using this app to save trade details, you agree to the following terms:
+
+1. Personal Use Only
+   - This app is designed for your personal trade journaling, analysis, and record-keeping.
+   - It does not provide financial advice, investment recommendations, or trading signals.
+   - You are solely responsible for all trading decisions and outcomes.
+
+2. No Guarantee of Accuracy
+   - Data entered into the app is user-provided. The app may display calculated metrics based on your input, but it does not verify accuracy.
+   - Screenshots uploaded are stored locally in the screenshots folder and are not reviewed or validated by the app.
+
+3. Liability and Risk
+   - The app owner and developers are not liable for any losses, damages, or claims resulting from your use of this app.
+   - Past results, performance dashboards, and simulated metrics are not guarantees of future performance.
+
+4. Privacy and Data Storage
+   - Your trade logs and uploads are stored locally or in the configured database.
+   - You are responsible for protecting any personally identifiable information or sensitive data you provide.
+
+5. Subscription and Access
+   - Access to the app may require a valid subscription key.
+   - Any admin or email notification features are provided as convenience tools and are subject to your local configuration.
+
+6. Acceptance
+   - By checking the acceptance box and saving a trade, you confirm that you have read, understood, and agreed to these Terms and Conditions.
+'''
+
 os.makedirs("screenshots", exist_ok=True)
 
 # ==================================
@@ -2301,13 +2329,26 @@ with journal:
         # ==========================
         # SAVE
         # ==========================
+        with st.expander("📄 Terms and Conditions", expanded=False):
+            st.markdown(TERMS_AND_CONDITIONS)
+
+        tc_agreed = st.checkbox(
+            "I have read and agree to the Terms and Conditions",
+            value=False,
+            key="accept_terms"
+        )
+
         submitted = st.form_submit_button(
             "💾 Save Trade"
         )
 
         if submitted:
-
-            cursor.execute(
+            if not tc_agreed:
+                st.warning(
+                    "You must agree to the Terms and Conditions before saving a trade."
+                )
+            else:
+                cursor.execute(
                 """
                 INSERT INTO trades(
                     date,
