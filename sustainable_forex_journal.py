@@ -1986,7 +1986,7 @@ with journal:
         # ==========================
         st.markdown("### Timing")
 
-        col1,col2 = st.columns(2)
+        col1, col2, col3 = st.columns(3)
 
         with col1:
 
@@ -2000,7 +2000,7 @@ with journal:
                 "Exit Time"
             )
 
-        duration = (
+        auto_duration = (
 
             datetime.combine(
                 datetime.today(),
@@ -2015,6 +2015,15 @@ with journal:
             )
 
         ).seconds / 60
+
+        with col3:
+
+            duration = st.number_input(
+                "Duration (minutes)",
+                value=float(auto_duration),
+                min_value=0.0,
+                step=1.0
+            )
 
         st.info(
             f"Trade Duration: {duration:.0f} minutes"
