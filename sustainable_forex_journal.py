@@ -2310,23 +2310,26 @@ Session: {session}
 st.divider()
 
 # ==================================
-# BULK IMPORT FROM CSV
+# BULK IMPORT FROM CSV / XLSX
 # ==================================
-st.subheader("📥 Bulk Import Trades from CSV")
+st.subheader("📥 Bulk Import Trades from CSV or XLSX")
 
-st.write("Upload a CSV file with your trade data. Columns should include: date, symbol, direction, entry, exit, lot, profit, setup, notes, session, risk, tags, mistake_type")
+st.write("Upload a CSV or XLSX file with your trade data. Columns should include: date, symbol, direction, entry, exit, lot, profit, setup, notes, session, risk, tags, mistake_type")
 
-csv_file = st.file_uploader(
-    "Upload trade CSV file",
-    type=["csv"],
-    key="trade_csv_uploader"
+trade_file = st.file_uploader(
+    "Upload trade file (CSV or XLSX)",
+    type=["csv", "xlsx"],
+    key="trade_file_uploader"
 )
 
-if csv_file:
+if trade_file:
     try:
-        import_df = pd.read_csv(csv_file)
+        if trade_file.name.endswith('.xlsx'):
+            import_df = pd.read_excel(trade_file)
+        else:
+            import_df = pd.read_csv(trade_file)
         
-        st.write(f"Found {len(import_df)} trades in CSV. Preview:")
+        st.write(f"Found {len(import_df)} trades. Preview:")
         st.dataframe(import_df.head(), use_container_width=True)
         
         if st.button("Import trades"):
