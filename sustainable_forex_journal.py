@@ -666,8 +666,6 @@ def render_enrollment_page():
     provider_link = get_subscription_payment_link()
     checkout_url = st.session_state.get("checkout_url", "")
 
-    st.markdown("# SUSTAINABLE FOREX JOURNAL")
-
     c1, c2 = st.columns([2, 1])
     with c1:
         st.markdown("## Journal Your Trading Journey.")
