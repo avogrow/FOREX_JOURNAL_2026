@@ -36,14 +36,9 @@ SUBSCRIPTION_LINK = os.getenv("SUBSCRIPTION_PAYMENT_LINK", "")
 WHOP_CHECKOUT_URL = os.getenv("WHOP_CHECKOUT_URL", "")
 SUBSCRIPTION_BACKEND_URL = os.getenv("SUBSCRIPTION_BACKEND_URL", "")
 WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET", "")
-ONE_TIME_PRICE = os.getenv("ONE_TIME_PRICE", "30")
+ONE_TIME_PRICE = os.getenv("ONE_TIME_PRICE", "10")
 ONE_TIME_CURRENCY = os.getenv("ONE_TIME_CURRENCY", "$")
-ONE_TIME_LOCAL_PRICE = os.getenv("ONE_TIME_LOCAL_PRICE", "R550")
-BANK_NAME = os.getenv("BANK_NAME", "Capitec Bank")
-BANK_ACCOUNT_HOLDER = os.getenv("BANK_ACCOUNT_HOLDER", "MR E AUGUSTYN")
-BANK_ACCOUNT_NUMBER = os.getenv("BANK_ACCOUNT_NUMBER", "2520993738")
-BANK_BRANCH_CODE = os.getenv("BANK_BRANCH_CODE", "470010")
-WHATSAPP_PROOF_URL = os.getenv("WHATSAPP_PROOF_URL", "https://wa.me/27762123384?text=Hi%20Ettiene!%20I%20just%20paid%20for%20the%20Pr1ceForm%20Smart%20Money%20Indicator.%20Please%20find%20my%20proof%20of%20payment%20attached.")
+WHATSAPP_PROOF_URL = os.getenv("WHATSAPP_PROOF_URL", "https://wa.me/254729425630?text=Hi%20Ettiene!%20I%20just%20paid%20for%20the%20Pr1ceForm%20Smart%20Money%20Indicator.%20Please%20find%20my%20proof%20of%20payment%20attached.")
 KEY_HASH_SECRET = os.getenv("SUBSCRIPTION_KEY_HASH_SECRET", "change-me")
 KEY_HASH_ALGORITHM = "sha256"
 VALID_KEYS_TXT = "valid_subscription_keys.txt"
@@ -671,24 +666,22 @@ def render_enrollment_page():
     provider_link = get_subscription_payment_link()
     checkout_url = st.session_state.get("checkout_url", "")
 
-    st.markdown("# SMART MONEY CHARTED.")
+    st.markdown("# SUSTAINABLE FOREX JOURNAL")
     st.markdown(
         "**Pr1ceForm Smart Money** automatically plots every key Smart Money concept on your chart — Order Blocks, CHoCH, BOS, Sessions, and Fibonacci — with a built-in trade checklist so you never miss a setup."
     )
 
     c1, c2 = st.columns([2, 1])
     with c1:
-        st.markdown("## Everything Plotted. Nothing Missed.")
-        st.write("Stop drawing levels manually. Pr1ceForm does the charting — you make the call.")
+        st.markdown("## Journal Your Trading Journey.")
+        st.write("Forex Tracker Pro Ultimate helps serious traders capture every move, stay accountable, and improve performance with an intuitive journal built for the subscription economy. Whether you're a discretionary trader or systematically executing Smart Money concepts, this journal is designed to grow with you.")
 
-        st.markdown("### What’s included")
+        st.markdown("### Why traders choose this Journal")
         st.markdown(
-            "- 🟩 Order Blocks auto-plotted in real time\n"
-            "- ⚡ CHoCH & BOS detection with clear labels\n"
-            "- 📐 Fibonacci levels automatically drawn\n"
-            "- 🌍 Asia, London & NY session boxes\n"
-            "- ✅ Live 4-point trade checklist\n"
-            "- 📊 Works on all timeframes and pairs"
+            "- 🟩 Track every trade with precision\n"
+            "- record entries, exits, position sizing, risk/reward, and notes\n"
+            "- 📊 Visualize performance instantly\n"
+            "- 📈 Charts, P&L summaries, and trend insights in one dashboard"
         )
 
         st.markdown("---")
@@ -710,18 +703,8 @@ def render_enrollment_page():
             )
 
     with c2:
-        st.markdown("## One Payment. Lifetime Access.")
         st.markdown(f"### {ONE_TIME_CURRENCY}{ONE_TIME_PRICE}")
-        st.write(f"{ONE_TIME_LOCAL_PRICE} ZAR")
-        st.markdown("#### Lifetime license key delivered after payment")
-
-        if BANK_ACCOUNT_NUMBER:
-            st.markdown("#### Banking details")
-            st.write(f"**Bank:** {BANK_NAME}")
-            st.write(f"**Account holder:** {BANK_ACCOUNT_HOLDER}")
-            st.write(f"**Account number:** {BANK_ACCOUNT_NUMBER}")
-            st.write(f"**Branch code:** {BANK_BRANCH_CODE}")
-            st.write("Use your email address as payment reference.")
+        st.markdown("#### License key delivered after payment")
 
         if WHATSAPP_PROOF_URL:
             st.markdown(f"[📲 Send proof of payment on WhatsApp]({WHATSAPP_PROOF_URL})")
