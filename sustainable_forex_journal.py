@@ -846,6 +846,8 @@ lot REAL,
 
 profit REAL,
 
+commission REAL DEFAULT 0,
+
 setup TEXT,
 
 notes TEXT,
@@ -893,6 +895,7 @@ def add_column_if_missing(column_name, definition):
     except:
         pass
 
+add_column_if_missing("commission", "REAL DEFAULT 0")
 add_column_if_missing("risk", "REAL DEFAULT 0")
 add_column_if_missing("r_multiple", "REAL DEFAULT 0")
 add_column_if_missing("session", "TEXT")
@@ -924,6 +927,12 @@ def load_trades():
             df["profit"],
             errors="coerce"
         ).fillna(0)
+
+        if "commission" in df.columns:
+            df["commission"] = pd.to_numeric(
+                df["commission"],
+                errors="coerce"
+            ).fillna(0)
 
         df["equity"] = df["profit"].cumsum()
 
@@ -967,6 +976,8 @@ def calc_metrics(df):
             "profit_factor": 0,
             "expectancy": 0,
             "avg_r": 0,
+            "total_commission": 0,
+            "avg_commission": 0,
             "max_dd": 0,
             "recovery_factor": 0,
             "max_win_streak": 0,
@@ -1029,6 +1040,18 @@ def calc_metrics(df):
         else 0
     )
 
+    total_commission = (
+        df["commission"].sum()
+        if "commission" in df.columns
+        else 0
+    )
+
+    avg_commission = (
+        df["commission"].mean()
+        if "commission" in df.columns and len(df) > 0
+        else 0
+    )
+
     max_dd = (
         abs(df["drawdown"].min())
         if "drawdown" in df.columns
@@ -1081,6 +1104,8 @@ def calc_metrics(df):
         "profit_factor": profit_factor,
         "expectancy": expectancy,
         "avg_r": avg_r,
+        "total_commission": total_commission,
+        "avg_commission": avg_commission,
         "max_dd": max_dd,
         "recovery_factor": recovery_factor,
         "max_win_streak": max_win_streak,
@@ -1195,6 +1220,8 @@ def calc_metrics(df):
             "profit_factor":0,
             "expectancy":0,
             "avg_r":0,
+            "total_commission":0,
+            "avg_commission":0,
             "max_dd":0,
             "recovery_factor":0,
             "max_win_streak":0,
@@ -1258,6 +1285,18 @@ def calc_metrics(df):
         else 0
     )
 
+    total_commission = (
+        df["commission"].sum()
+        if "commission" in df.columns
+        else 0
+    )
+
+    avg_commission = (
+        df["commission"].mean()
+        if "commission" in df.columns and len(df) > 0
+        else 0
+    )
+
     max_dd = (
         abs(df["drawdown"].min())
         if "drawdown" in df.columns
@@ -1299,6 +1338,10 @@ def calc_metrics(df):
         "expectancy": expectancy,
 
         "avg_r": avg_r,
+
+        "total_commission": total_commission,
+
+        "avg_commission": avg_commission,
 
         "max_dd": max_dd,
 
@@ -1471,7 +1514,7 @@ with dashboard:
     # ==========================
     # KPI ROW 3
     # ==========================
-    c1,c2,c3,c4 = st.columns(4)
+    c1,c2,c3,c4,c5 = st.columns(5)
 
     c1.metric(
         "✅ Wins",
@@ -1491,6 +1534,11 @@ with dashboard:
     c4.metric(
         "⚠️ Max Loss Streak",
         metrics["max_loss_streak"]
+    )
+
+    c5.metric(
+        "💸 Total Commission",
+        f"${metrics['total_commission']:,.2f}"
     )
 
     st.divider()
@@ -1954,8 +2002,7 @@ with journal:
             
             commission = st.number_input(
                 "Commission ($)",
-                value=0.0,
-                min_value=0.0
+                value=0.0
             )
             
             net_profit = profit - commission
@@ -2270,6 +2317,7 @@ with journal:
                     exit,
                     lot,
                     profit,
+                    commission,
                     setup,
                     notes,
                     risk,
@@ -2290,7 +2338,7 @@ with journal:
                     ?,?,?,?,?,?,
                     ?,?,?,?,?,?,
                     ?,?,?,?,?,?,
-                    ?,?,?
+                    ?,?,?,?
                 )
                 """,
                 (
@@ -2301,6 +2349,7 @@ with journal:
                     exit_price,
                     lot,
                     net_profit,
+                    commission,
                     setup,
                     notes,
                     risk,
@@ -2414,39 +2463,65 @@ Session: {session}
 
         with edit_col1:
 
-            editable_entry_time = st.time_input(
-                "Entry Time",
-                value=parse_time_string(trade.get("entry_time", "")),
+            editable_entry_time = st.text_input(
+                "Entry Time (HH:MM or HH:MM:SS)",
+                value="",
+                placeholder=trade.get("entry_time", ""),
                 key=f"edit_entry_time_{trade_id}"
             )
 
         with edit_col2:
 
-            editable_exit_time = st.time_input(
-                "Exit Time",
-                value=parse_time_string(trade.get("exit_time", "")),
+            editable_exit_time = st.text_input(
+                "Exit Time (HH:MM or HH:MM:SS)",
+                value="",
+                placeholder=trade.get("exit_time", ""),
                 key=f"edit_exit_time_{trade_id}"
             )
 
+        st.caption("Enter times manually in 24-hour format, e.g. 14:30 or 14:30:00. Leave blank to keep the current placeholder value.")
+
         if st.button("Update Trade Time", key=f"update_trade_time_{trade_id}"):
 
-            updated_duration = (
-                datetime.combine(datetime.today(), editable_exit_time)
-                - datetime.combine(datetime.today(), editable_entry_time)
-            ).seconds / 60
+            if not editable_entry_time.strip() or not editable_exit_time.strip():
+                st.error("Please enter both entry and exit times.")
+            else:
+                try:
+                    updated_entry_time = datetime.strptime(editable_entry_time.strip(), "%H:%M:%S").time()
+                except ValueError:
+                    try:
+                        updated_entry_time = datetime.strptime(editable_entry_time.strip(), "%H:%M").time()
+                    except ValueError:
+                        updated_entry_time = None
 
-            cursor.execute(
-                "UPDATE trades SET entry_time = ?, exit_time = ?, duration = ? WHERE id = ?",
-                (
-                    str(editable_entry_time),
-                    str(editable_exit_time),
-                    updated_duration,
-                    int(trade_id)
-                )
-            )
-            conn.commit()
-            st.success("Trade timing updated successfully.")
-            st.experimental_rerun()
+                try:
+                    updated_exit_time = datetime.strptime(editable_exit_time.strip(), "%H:%M:%S").time()
+                except ValueError:
+                    try:
+                        updated_exit_time = datetime.strptime(editable_exit_time.strip(), "%H:%M").time()
+                    except ValueError:
+                        updated_exit_time = None
+
+                if updated_entry_time is None or updated_exit_time is None:
+                    st.error("Please enter times in HH:MM or HH:MM:SS format.")
+                else:
+                    updated_duration = (
+                        datetime.combine(datetime.today(), updated_exit_time)
+                        - datetime.combine(datetime.today(), updated_entry_time)
+                    ).seconds / 60
+
+                    cursor.execute(
+                        "UPDATE trades SET entry_time = ?, exit_time = ?, duration = ? WHERE id = ?",
+                        (
+                            str(updated_entry_time),
+                            str(updated_exit_time),
+                            updated_duration,
+                            int(trade_id)
+                        )
+                    )
+                    conn.commit()
+                    st.success("Trade timing updated successfully.")
+                    st.experimental_rerun()
 
         st.info(
             trade["ai_review"]
