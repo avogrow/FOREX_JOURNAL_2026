@@ -2314,7 +2314,7 @@ st.divider()
 # ==================================
 st.subheader("📥 Bulk Import Trades from CSV or XLSX")
 
-st.write("Upload a CSV or XLSX file with your trade data. Columns should include: date, symbol, direction, entry, exit, lot, profit, setup, notes, session, risk, tags, mistake_type")
+st.write("Upload a CSV or XLSX file with your trade data. Columns should include: date (or time), symbol, direction, entry, exit, lot, profit, setup, notes, session, risk, tags, mistake_type")
 
 trade_file = st.file_uploader(
     "Upload trade file (CSV or XLSX)",
@@ -2338,7 +2338,8 @@ if trade_file:
             
             for idx, row in import_df.iterrows():
                 try:
-                    trade_date = str(row.get("date", "")).strip()
+                    # Support both "date" and "time" column names
+                    trade_date = str(row.get("date", "") or row.get("time", "")).strip()
                     symbol = str(row.get("symbol", "")).strip() or "EURUSD"
                     direction = str(row.get("direction", "")).strip() or "BUY"
                     entry = float(row.get("entry", 0) or 0)
