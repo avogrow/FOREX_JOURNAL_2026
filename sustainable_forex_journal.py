@@ -2309,7 +2309,96 @@ Session: {session}
 
 st.divider()
 
-st.subheader("🎬 Trade Replay")
+# ==================================
+# BULK IMPORT FROM CSV
+# ==================================
+st.subheader("📥 Bulk Import Trades from CSV")
+
+st.write("Upload a CSV file with your trade data. Columns should include: date, symbol, direction, entry, exit, lot, profit, setup, notes, session, risk, tags, mistake_type")
+
+csv_file = st.file_uploader(
+    "Upload trade CSV file",
+    type=["csv"],
+    key="trade_csv_uploader"
+)
+
+if csv_file:
+    try:
+        import_df = pd.read_csv(csv_file)
+        
+        st.write(f"Found {len(import_df)} trades in CSV. Preview:")
+        st.dataframe(import_df.head(), use_container_width=True)
+        
+        if st.button("Import trades"):
+            imported_count = 0
+            errors = []
+            
+            for idx, row in import_df.iterrows():
+                try:
+                    trade_date = str(row.get("date", "")).strip()
+                    symbol = str(row.get("symbol", "")).strip() or "EURUSD"
+                    direction = str(row.get("direction", "")).strip() or "BUY"
+                    entry = float(row.get("entry", 0) or 0)
+                    exit_price = float(row.get("exit", 0) or 0)
+                    lot = float(row.get("lot", 0.1) or 0.1)
+                    profit = float(row.get("profit", 0) or 0)
+                    setup = str(row.get("setup", "")).strip() or "Manual"
+                    notes = str(row.get("notes", "")).strip() or ""
+                    session = str(row.get("session", "")).strip() or "London"
+                    risk = float(row.get("risk", 0) or 0)
+                    tags = str(row.get("tags", "")).strip() or ""
+                    mistake_type = str(row.get("mistake_type", "")).strip() or ""
+                    r_multiple = (profit / risk) if risk > 0 else 0
+                    
+                    entry_time = str(row.get("entry_time", "00:00:00")).strip() or "00:00:00"
+                    exit_time = str(row.get("exit_time", "00:00:00")).strip() or "00:00:00"
+                    duration = float(row.get("duration", 0) or 0)
+                    
+                    setup_score = int(row.get("setup_score", 0) or 0)
+                    ai_review = str(row.get("ai_review", "")).strip() or ""
+                    
+                    if not trade_date:
+                        errors.append(f"Row {idx+1}: Missing date")
+                        continue
+                    
+                    cursor.execute(
+                        """
+                        INSERT INTO trades(
+                            date, symbol, direction, entry, exit, lot, profit,
+                            setup, notes, risk, r_multiple, session, setup_score,
+                            tags, mistake_type, entry_time, exit_time, duration,
+                            screenshot, subscription_key, ai_review
+                        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                        """,
+                        (
+                            trade_date, symbol, direction, entry, exit_price, lot, profit,
+                            setup, notes, risk, r_multiple, session, setup_score,
+                            tags, mistake_type, entry_time, exit_time, duration,
+                            "", get_current_subscription_key(), ai_review
+                        )
+                    )
+                    imported_count += 1
+                    
+                except Exception as e:
+                    errors.append(f"Row {idx+1}: {str(e)}")
+            
+            conn.commit()
+            
+            if imported_count > 0:
+                st.success(f"✅ Imported {imported_count} trades successfully!")
+                st.rerun()
+            
+            if errors:
+                st.warning(f"⚠️ {len(errors)} rows had errors:")
+                for err in errors[:10]:
+                    st.write(f"  - {err}")
+                if len(errors) > 10:
+                    st.write(f"  ... and {len(errors) - 10} more")
+    
+    except Exception as e:
+        st.error(f"Error reading CSV: {str(e)}")
+
+st.divider()
 
 if not df.empty:
 
