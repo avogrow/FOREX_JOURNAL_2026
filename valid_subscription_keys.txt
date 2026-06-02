@@ -1,4 +1,5 @@
 # Add one active subscription key per line.
 # Lines starting with # are ignored.
-PRO-USER-123
-PRO-USER-456
+PRO-9F2K7Z4J1R
+PRO-X6T8H3W0B
+PRO-MN5V2C7Q8S

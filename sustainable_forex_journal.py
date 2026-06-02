@@ -16,6 +16,8 @@ from email.message import EmailMessage
 import numpy as np
 from reportlab.platypus import SimpleDocTemplate, Paragraph
 
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ==================================
 # CONFIG
 # ==================================
@@ -41,12 +43,12 @@ ONE_TIME_CURRENCY = os.getenv("ONE_TIME_CURRENCY", "$")
 WHATSAPP_PROOF_URL = os.getenv("WHATSAPP_PROOF_URL", "https://wa.me/254729425630?text=Hi%20Dennis!%20I%20just%20paid%20for%20the%20Journal.%20Please%20find%20my%20proof%20of%20payment%20attached.")
 KEY_HASH_SECRET = os.getenv("SUBSCRIPTION_KEY_HASH_SECRET", "change-me")
 KEY_HASH_ALGORITHM = "sha256"
-VALID_KEYS_TXT = "valid_subscription_keys.txt"
-VALID_KEYS_CSV = "valid_subscription_keys.csv"
-SUB_KEYS_BACKUP_TXT = "backup_valid_subscription_keys.txt"
-SUB_KEYS_BACKUP_CSV = "backup_valid_subscription_keys.csv"
-REGISTRATION_REQUESTS_JSON = "subscription_registration_requests.json"
-REGISTRATION_REQUESTS_CSV = "subscription_registration_requests.csv"
+VALID_KEYS_TXT = os.path.join(BASE_DIR, "valid_subscription_keys.txt")
+VALID_KEYS_CSV = os.path.join(BASE_DIR, "valid_subscription_keys.csv")
+SUB_KEYS_BACKUP_TXT = os.path.join(BASE_DIR, "backup_valid_subscription_keys.txt")
+SUB_KEYS_BACKUP_CSV = os.path.join(BASE_DIR, "backup_valid_subscription_keys.csv")
+REGISTRATION_REQUESTS_JSON = os.path.join(BASE_DIR, "subscription_registration_requests.json")
+REGISTRATION_REQUESTS_CSV = os.path.join(BASE_DIR, "subscription_registration_requests.csv")
 
 
 def load_csv_subscription_keys():
@@ -868,6 +870,8 @@ duration REAL DEFAULT 0,
 
 screenshot TEXT,
 
+subscription_key TEXT,
+
 ai_review TEXT
 )
 """)
@@ -899,6 +903,7 @@ add_column_if_missing("entry_time", "TEXT")
 add_column_if_missing("exit_time", "TEXT")
 add_column_if_missing("duration", "REAL DEFAULT 0")
 add_column_if_missing("screenshot", "TEXT")
+add_column_if_missing("subscription_key", "TEXT")
 add_column_if_missing("ai_review", "TEXT")
 
 # ==================================
@@ -906,9 +911,11 @@ add_column_if_missing("ai_review", "TEXT")
 # ==================================
 def load_trades():
 
+    current_key = get_current_subscription_key()
     df = pd.read_sql(
-        "SELECT * FROM trades ORDER BY date ASC",
-        conn
+        "SELECT * FROM trades WHERE subscription_key = ? ORDER BY date ASC",
+        conn,
+        params=(current_key,)
     )
 
     if len(df):
@@ -2242,6 +2249,7 @@ with journal:
                     exit_time,
                     duration,
                     screenshot,
+                    subscription_key,
                     ai_review
                 )
 
@@ -2249,7 +2257,7 @@ with journal:
                     ?,?,?,?,?,?,
                     ?,?,?,?,?,?,
                     ?,?,?,?,?,?,
-                    ?,?
+                    ?,?,?
                 )
                 """,
                 (
@@ -2272,6 +2280,7 @@ with journal:
                     str(exit_time),
                     duration,
                     screenshot_path,
+                    get_current_subscription_key(),
                     ai_review
                 )
             )

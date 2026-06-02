@@ -1,3 +1,4 @@
 key,user,email,plan,expires,active
-PRO-USER-123,Alice,alice@example.com,monthly,2026-12-31,TRUE
-PRO-USER-456,Bob,bob@example.com,annual,2027-05-31,TRUE
+PRO-9F2K7Z4J1R,Alice,alice@example.com,monthly,2026-12-31,TRUE
+PRO-X6T8H3W0B,Bob,bob@example.com,annual,2027-05-31,TRUE
+PRO-MN5V2C7Q8S,Carol,carol@example.com,lifetime,2028-12-31,TRUE
