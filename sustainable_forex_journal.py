@@ -1867,6 +1867,18 @@ with analytics:
 with journal:
 
     st.subheader("📖 Advanced Trade Journal")
+    
+    # Download CSV section
+    if not df.empty:
+        csv_data = df.to_csv(index=False)
+        col1, col2 = st.columns([1, 4])
+        with col1:
+            st.download_button(
+                label="📥 Download CSV",
+                data=csv_data,
+                file_name="trades_export.csv",
+                mime="text/csv"
+            )
 
     with st.form("trade_form"):
 
@@ -2265,6 +2277,17 @@ with journal:
             st.success(
                 "Trade Saved Successfully ✅"
             )
+            
+            # Add CSV download option
+            if not df.empty:
+                csv_data = df.to_csv(index=False)
+                st.download_button(
+                    label="📥 Download Trades as CSV",
+                    data=csv_data,
+                    file_name="trades_export.csv",
+                    mime="text/csv"
+                )
+            
             st.rerun()
 
             send_telegram(
