@@ -38,7 +38,7 @@ SUBSCRIPTION_BACKEND_URL = os.getenv("SUBSCRIPTION_BACKEND_URL", "")
 WHOP_WEBHOOK_SECRET = os.getenv("WHOP_WEBHOOK_SECRET", "")
 ONE_TIME_PRICE = os.getenv("ONE_TIME_PRICE", "10")
 ONE_TIME_CURRENCY = os.getenv("ONE_TIME_CURRENCY", "$")
-WHATSAPP_PROOF_URL = os.getenv("WHATSAPP_PROOF_URL", "https://wa.me/254729425630?text=Hi%20Ettiene!%20I%20just%20paid%20for%20the%20Pr1ceForm%20Smart%20Money%20Indicator.%20Please%20find%20my%20proof%20of%20payment%20attached.")
+WHATSAPP_PROOF_URL = os.getenv("WHATSAPP_PROOF_URL", "https://wa.me/254729425630?text=Hi%20Dennis!%20I%20just%20paid%20for%20the%20Journal.%20Please%20find%20my%20proof%20of%20payment%20attached.")
 KEY_HASH_SECRET = os.getenv("SUBSCRIPTION_KEY_HASH_SECRET", "change-me")
 KEY_HASH_ALGORITHM = "sha256"
 VALID_KEYS_TXT = "valid_subscription_keys.txt"
