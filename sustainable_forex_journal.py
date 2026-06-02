@@ -751,37 +751,15 @@ def require_terms_agreement():
     if terms_checkbox:
         st.session_state["terms_accepted"] = True
         st.success("Thank you. You may now continue using the app.")
-        st.experimental_rerun()
-    else:
-        st.warning("You must accept the Terms and Conditions before logging in or using the app.")
-        st.stop()
-
-    with c2:
-        st.markdown(f"### {ONE_TIME_CURRENCY}{ONE_TIME_PRICE}")
-        st.markdown("#### License key delivered after payment")
-
-        if WHATSAPP_PROOF_URL:
-            st.markdown(f"[📲 Send proof of payment on WhatsApp]({WHATSAPP_PROOF_URL})")
-            st.write("Proof of payment is delivered quickly and access is granted within minutes.")
-
-    st.markdown("---")
-    st.markdown("## Already purchased?")
-    with st.form("verify_license_form"):
-        verify_key = st.text_input("Enter your license key", key="verify_license_key")
-        verify_submit = st.form_submit_button("VERIFY")
-    if verify_submit:
-        if is_subscription_key_valid(verify_key):
-            st.session_state["subscription_key"] = verify_key
-            st.success("Valid license key. Unlocking the app now.")
+        if hasattr(st, "rerun"):
             st.rerun()
+        elif hasattr(st, "experimental_rerun"):
+            st.experimental_rerun()
         else:
-            st.error("Invalid license key.")
+            st.stop()
 
-    st.markdown("---")
-    st.markdown("## Need help?")
-    st.write(
-        "If you need support with payment or access, submit a registration request in the sidebar or contact support through your payment provider."
-    )
+    st.warning("You must accept the Terms and Conditions before logging in or using the app.")
+    st.stop()
 
 
 def show_subscription_gate():
