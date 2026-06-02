@@ -735,6 +735,27 @@ def render_enrollment_page():
                 "No direct checkout link is configured. Use the bank transfer option below or set `WHOP_CHECKOUT_URL` / `SUBSCRIPTION_PAYMENT_LINK` in secrets."
             )
 
+
+def require_terms_agreement():
+    if st.session_state.get("terms_accepted", False):
+        return
+
+    st.markdown("# Terms and Agreement")
+    st.markdown(TERMS_AND_CONDITIONS)
+    terms_checkbox = st.checkbox(
+        "I have read and agree to the Terms and Conditions",
+        value=False,
+        key="terms_agreement_prompt"
+    )
+
+    if terms_checkbox:
+        st.session_state["terms_accepted"] = True
+        st.success("Thank you. You may now continue using the app.")
+        st.experimental_rerun()
+    else:
+        st.warning("You must accept the Terms and Conditions before logging in or using the app.")
+        st.stop()
+
     with c2:
         st.markdown(f"### {ONE_TIME_CURRENCY}{ONE_TIME_PRICE}")
         st.markdown("#### License key delivered after payment")
@@ -769,6 +790,8 @@ def show_subscription_gate():
     valid = is_subscription_key_valid(current_key)
 
     if valid:
+        if not st.session_state.get("terms_accepted", False):
+            require_terms_agreement()
         return
 
     st.sidebar.header("Unlock access")
