@@ -692,7 +692,6 @@ def render_enrollment_page():
         st.markdown("### How to get access")
         if provider_link:
             st.markdown(f"[👉 Get Instant Access]({provider_link})")
-            st.write("Use your payment provider checkout link for one-time lifetime access.")
             if WHOP_WEBHOOK_SECRET:
                 st.info(
                     "Automatic Whop provisioning is configured. "
