@@ -895,6 +895,8 @@ r_multiple REAL DEFAULT 0,
 
 session TEXT,
 
+timeframe TEXT,
+
 setup_score INTEGER DEFAULT 0,
 
 tags TEXT,
@@ -936,6 +938,7 @@ add_column_if_missing("commission", "REAL DEFAULT 0")
 add_column_if_missing("risk", "REAL DEFAULT 0")
 add_column_if_missing("r_multiple", "REAL DEFAULT 0")
 add_column_if_missing("session", "TEXT")
+add_column_if_missing("timeframe", "TEXT")
 add_column_if_missing("setup_score", "INTEGER DEFAULT 0")
 add_column_if_missing("tags", "TEXT")
 add_column_if_missing("mistake_type", "TEXT")
@@ -2167,6 +2170,21 @@ with journal:
             key="trade_session"
         )
 
+        timeframe = st.selectbox(
+            "Trading Timeframe",
+            [
+                "1 min",
+                "5 min",
+                "15 min",
+                "30 min",
+                "1H",
+                "4H",
+                "1D"
+            ],
+            index=4,
+            key="timeframe"
+        )
+
         # ==========================
         # ENTRY & EXIT TIMES
         # ==========================
@@ -2479,6 +2497,7 @@ with journal:
                     risk,
                     r_multiple,
                     session,
+                    timeframe,
                     setup_score,
                     tags,
                     mistake_type,
@@ -2511,6 +2530,7 @@ with journal:
                     risk,
                     r_multiple,
                     session,
+                    timeframe,
                     setup_score,
                     ",".join(tags),
                     ",".join(mistakes),
@@ -2539,6 +2559,7 @@ with journal:
                 "stop_loss": 0.0,
                 "take_profit": 0.0,
                 "trade_session": "Asian",
+                "timeframe": "1H",
                 "entry_time": datetime.now().time().replace(second=0, microsecond=0),
                 "exit_time": datetime.now().time().replace(second=0, microsecond=0),
                 "duration": 0.0,
@@ -2635,6 +2656,10 @@ Session: {session}
             )
 
             st.write(
+                f"Timeframe: {trade.get('timeframe', 'N/A')}"
+            )
+
+            st.write(
                 f"Score: {trade['setup_score']}/6"
             )
 
@@ -2669,6 +2694,7 @@ Session: {session}
                 "profit",
                 "r_multiple",
                 "session",
+                "timeframe",
                 "setup_score",
                 "entry_time",
                 "exit_time",
