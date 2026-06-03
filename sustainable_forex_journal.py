@@ -2276,6 +2276,7 @@ with journal:
                 "SMT",
                 "CISD",
                 "CRT",
+                "20 EMA",
                 "News",
                 "London Open",
                 "New York Open",
