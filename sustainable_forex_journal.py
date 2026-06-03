@@ -2546,8 +2546,8 @@ with journal:
             conn.commit()
 
             # Reset the trade entry form state so the user can add a new trade immediately.
+            # Use only JSON-serializable values for session state
             defaults = {
-                "trade_date": datetime.today().date(),
                 "symbol": "EURUSD",
                 "direction": "BUY",
                 "entry": 0.0,
@@ -2560,8 +2560,6 @@ with journal:
                 "take_profit": 0.0,
                 "trade_session": "Asian",
                 "timeframe": "1H",
-                "entry_time": datetime.now().time().replace(second=0, microsecond=0),
-                "exit_time": datetime.now().time().replace(second=0, microsecond=0),
                 "duration": 0.0,
                 "setup": "Order Block",
                 "liquidity_sweep": False,
