@@ -2854,16 +2854,19 @@ with psychology:
         entries = st.session_state.get('psych_journal', [])
         if not entries:
             st.info("No psychology notes yet.")
-        for entry in entries:
+        for i, entry in enumerate(entries):
             cols = st.columns([9,1])
             with cols[0]:
                 st.markdown(f"**{entry['date']}** — {entry['mood']}")
                 st.write(entry['note'])
             with cols[1]:
-                if st.button("Delete", key=f"del_psych_{entry.get('id')}"):
+                entry_id = entry.get('id') if entry.get('id') is not None else f'noid_{i}'
+                btn_key = f"del_psych_{entry_id}_{i}"
+                if st.button("Delete", key=btn_key):
                     try:
-                        cursor.execute("DELETE FROM psych_journal WHERE id=?", (entry.get('id'),))
-                        conn.commit()
+                        if entry.get('id') is not None:
+                            cursor.execute("DELETE FROM psych_journal WHERE id=?", (entry.get('id'),))
+                            conn.commit()
                         # remove from session cache
                         st.session_state['psych_journal'] = [e for e in st.session_state['psych_journal'] if e.get('id') != entry.get('id')]
                         st.success("Entry deleted")
