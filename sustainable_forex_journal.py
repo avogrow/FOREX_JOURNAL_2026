@@ -2033,7 +2033,9 @@ with journal:
         st.markdown("### Trade Information")
 
         trade_date = st.date_input(
-            "Trade Date"
+            "Trade Date",
+            value=datetime.today().date(),
+            key="trade_date"
         )
 
         symbol = st.selectbox(
@@ -2048,7 +2050,8 @@ with journal:
                 "EURUSD",
                 "GBPUSD",
                 "USDJPY"
-            ]
+            ],
+            key="symbol"
         )
 
         direction = st.selectbox(
@@ -2056,7 +2059,8 @@ with journal:
             [
                 "BUY",
                 "SELL"
-            ]
+            ],
+            key="direction"
         )
 
         col1,col2 = st.columns(2)
@@ -2065,29 +2069,34 @@ with journal:
 
             entry = st.number_input(
                 "Entry Price",
-                value=0.0
+                value=0.0,
+                key="entry"
             )
 
             lot = st.number_input(
                 "Lot Size",
-                value=0.10
+                value=0.10,
+                key="lot"
             )
 
         with col2:
 
             exit_price = st.number_input(
                 "Exit Price",
-                value=0.0
+                value=0.0,
+                key="exit_price"
             )
 
             profit = st.number_input(
                 "Profit ($)",
-                value=0.0
+                value=0.0,
+                key="profit"
             )
             
             commission = st.number_input(
                 "Commission ($)",
-                value=0.0
+                value=0.0,
+                key="commission"
             )
             
             net_profit = profit - commission
@@ -2103,19 +2112,22 @@ with journal:
 
             risk = st.number_input(
                 "Risk Amount ($)",
-                value=100.0
+                value=100.0,
+                key="risk"
             )
 
         with col2:
 
             stop_loss = st.number_input(
-                "Stop Loss"
+                "Stop Loss",
+                key="stop_loss"
             )
 
         with col3:
 
             take_profit = st.number_input(
-                "Take Profit"
+                "Take Profit",
+                key="take_profit"
             )
 
         r_multiple = (
@@ -2151,7 +2163,8 @@ with journal:
                 "London Open",
                 "New York",
                 "New York Open"
-            ]
+            ],
+            key="trade_session"
         )
 
         # ==========================
@@ -2165,14 +2178,18 @@ with journal:
 
             entry_time = st.time_input(
                 "Entry Time",
-                step=timedelta(minutes=1)
+                value=datetime.now().time().replace(second=0, microsecond=0),
+                step=timedelta(minutes=1),
+                key="entry_time"
             )
 
         with col2:
 
             exit_time = st.time_input(
                 "Exit Time",
-                step=timedelta(minutes=1)
+                value=datetime.now().time().replace(second=0, microsecond=0),
+                step=timedelta(minutes=1),
+                key="exit_time"
             )
 
         auto_duration = (
@@ -2197,7 +2214,8 @@ with journal:
                 "Duration (minutes)",
                 value=float(auto_duration),
                 min_value=0.0,
-                step=1.0
+                step=1.0,
+                key="duration"
             )
 
         st.info(
@@ -2224,7 +2242,8 @@ with journal:
                 "Liquidity Sweep",
                 "CISD",
                 "CRT"
-            ]
+            ],
+            key="setup"
         )
 
         # ==========================
@@ -2247,43 +2266,52 @@ with journal:
             )
 
             equal_high = st.checkbox(
-                "Equal High"
+                "Equal High",
+                key="equal_high"
             )
 
         with c2:
 
             fvg_present = st.checkbox(
-                "FVG Present"
+                "FVG Present",
+                key="fvg_present"
             )
 
             cisd_present = st.checkbox(
-                "CISD Confirmed"
+                "CISD Confirmed",
+                key="cisd_present"
             )
 
             ifvg_present = st.checkbox(
-                "iFVG Present"
+                "iFVG Present",
+                key="ifvg_present"
             )
 
         with c3:
 
             session_valid = st.checkbox(
-                "Correct Session"
+                "Correct Session",
+                key="session_valid"
             )
 
             displacement = st.checkbox(
-                "Displacement"
+                "Displacement",
+                key="displacement"
             )
 
             equal_low = st.checkbox(
-                "Equal Low"
+                "Equal Low",
+                key="equal_low"
             )
 
             v_shape = st.checkbox(
-                "V-Shape (Momentum)"
+                "V-Shape (Momentum)",
+                key="v_shape"
             )
 
             delivery_from_fvg = st.checkbox(
-                "Delivery from FVG"
+                "Delivery from FVG",
+                key="delivery_from_fvg"
             )
 
         setup_score = min(sum([
@@ -2349,7 +2377,8 @@ with journal:
                     "Scalp",
                     "Intraday",
                     "Swing"
-                ]
+                ],
+                key="tags"
             )
 
             st.markdown("### Mistake Tracking")
@@ -2366,13 +2395,15 @@ with journal:
                     "Late Entry",
                     "No Confirmation",
                     "Risked Too Much"
-                ]
+                ],
+                key="mistakes"
             )
 
             st.markdown("### Screenshot Upload")
             uploaded_screenshot = st.file_uploader(
                 "Upload a PNG, JPG, or JPEG screenshot of the trade.",
-                type=["png", "jpg", "jpeg"]
+                type=["png", "jpg", "jpeg"],
+                key="uploaded_screenshot"
             )
 
             if uploaded_screenshot is not None:
@@ -2493,6 +2524,44 @@ with journal:
             )
 
             conn.commit()
+
+            # Reset the trade entry form state so the user can add a new trade immediately.
+            defaults = {
+                "trade_date": datetime.today().date(),
+                "symbol": "EURUSD",
+                "direction": "BUY",
+                "entry": 0.0,
+                "lot": 0.10,
+                "exit_price": 0.0,
+                "profit": 0.0,
+                "commission": 0.0,
+                "risk": 100.0,
+                "stop_loss": 0.0,
+                "take_profit": 0.0,
+                "trade_session": "Asian",
+                "entry_time": datetime.now().time().replace(second=0, microsecond=0),
+                "exit_time": datetime.now().time().replace(second=0, microsecond=0),
+                "duration": 0.0,
+                "setup": "Order Block",
+                "liquidity_sweep": False,
+                "htf_bias": False,
+                "equal_high": False,
+                "fvg_present": False,
+                "cisd_present": False,
+                "ifvg_present": False,
+                "session_valid": False,
+                "displacement": False,
+                "equal_low": False,
+                "v_shape": False,
+                "delivery_from_fvg": False,
+                "tags": [],
+                "mistakes": [],
+                "uploaded_screenshot": None,
+                "journal_notes": "",
+                "accept_terms": False
+            }
+            for key, value in defaults.items():
+                st.session_state[key] = value
 
             st.success(
                 "Trade Saved Successfully ✅"
