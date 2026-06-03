@@ -2212,6 +2212,10 @@ with journal:
                 "HTF Bias"
             )
 
+            equal_high = st.checkbox(
+                "Equal High"
+            )
+
         with c2:
 
             fvg_present = st.checkbox(
@@ -2220,6 +2224,10 @@ with journal:
 
             cisd_present = st.checkbox(
                 "CISD Confirmed"
+            )
+
+            ifvg_present = st.checkbox(
+                "iFVG Present"
             )
 
         with c3:
@@ -2232,14 +2240,31 @@ with journal:
                 "Displacement"
             )
 
-        setup_score = sum([
+            equal_low = st.checkbox(
+                "Equal Low"
+            )
+
+            v_shape = st.checkbox(
+                "V-Shape (Momentum)"
+            )
+
+            delivery_from_fvg = st.checkbox(
+                "Delivery from FVG"
+            )
+
+        setup_score = min(sum([
             liquidity_sweep,
             htf_bias,
+            equal_high,
             fvg_present,
             cisd_present,
+            ifvg_present,
             session_valid,
-            displacement
-        ])
+            displacement,
+            equal_low,
+            v_shape,
+            delivery_from_fvg
+        ]), 6)
 
         if setup_score == 6:
             grade = "A+"
