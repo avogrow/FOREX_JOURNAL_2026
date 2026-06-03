@@ -1466,16 +1466,33 @@ with dashboard:
 
     st.subheader("📈 Sustainable Style Performance Dashboard")
 
+    if "account_id_saved" not in st.session_state:
+        st.session_state["account_id_saved"] = False
+
+    saved_account = st.session_state.get("account_id", "")
     account_id = st.text_input(
         "Account ID",
-        value=st.session_state.get("account_id", ""),
-        key="dashboard_account_id"
+        value=saved_account,
+        key="dashboard_account_id",
+        disabled=st.session_state.get("account_id_saved", False)
     )
 
-    if account_id:
-        st.markdown(f"**Current Account:** `{account_id}`")
+    if not st.session_state.get("account_id_saved", False):
+        if account_id:
+            if st.button("Save Account", key="save_dashboard_account"):
+                st.session_state["account_id"] = account_id.strip()
+                st.session_state["account_id_saved"] = True
+                if hasattr(st, "rerun"):
+                    st.rerun()
+                elif hasattr(st, "experimental_rerun"):
+                    st.experimental_rerun()
+                else:
+                    st.success("Account ID saved. Refresh the page to continue.")
+        else:
+            st.info("Enter an Account ID to represent this dashboard.")
     else:
-        st.info("Enter an Account ID to represent this dashboard.")
+        st.markdown(f"**Current Account:** `{saved_account}`")
+        st.caption("This Account ID has been saved and is now read-only.")
 
     # ==========================
     # KPI ROW 1
