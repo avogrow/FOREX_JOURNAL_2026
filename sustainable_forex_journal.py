@@ -1178,12 +1178,33 @@ with st.sidebar:
     st.metric("Trades", metrics["total_trades"])
     st.metric("Net Profit", f"${metrics['total_profit']:,.2f}")
     st.metric("Win Rate", f"{metrics['win_rate']:.1f}%")
+    # Account size and balance
+    account_size = st.session_state.get("account_size", None)
+    account_size = st.number_input("Account Size (USD)", value=float(account_size) if account_size else 10000.0, step=100.0, format="%.2f", key="account_size")
+    balance = account_size + metrics['total_profit']
+    st.metric("Account Balance", f"${balance:,.2f}")
+
     saved_account = st.session_state.get("account_id", "")
     if saved_account:
         st.markdown(f"**Account:** `{saved_account}`")
     else:
         st.markdown("**Account:** _not set_")
     st.markdown("---")
+    # Average trade duration
+    avg_duration = 0
+    if "duration" in df.columns and len(df) > 0:
+        try:
+            avg_duration = float(df['duration'].mean())
+        except Exception:
+            avg_duration = 0
+    # display avg duration in minutes, and as hh:mm if >60
+    if avg_duration >= 60:
+        hours = int(avg_duration // 60)
+        minutes = int(avg_duration % 60)
+        dur_str = f"{hours}h {minutes}m"
+    else:
+        dur_str = f"{avg_duration:.0f}m"
+    st.metric("Avg Duration", dur_str)
     st.markdown("Tip: Save the Account ID from the Dashboard tab to lock this report.")
 
 # ==================================
