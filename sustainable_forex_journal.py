@@ -2391,14 +2391,9 @@ with journal:
 
             st.markdown("### Trade Notes")
             notes = st.text_area(
-                "Journal Notes"
+                "Journal Notes",
+                key="journal_notes"
             )
-
-        st.markdown("---")
-
-        notes = st.text_area(
-            "Journal Notes"
-        )
 
         st.markdown("---")
 
