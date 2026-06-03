@@ -922,6 +922,21 @@ conn.commit()
 create_subscription_keys_table()
 
 # ==================================
+# PSYCHOLOGY JOURNAL TABLE
+# ==================================
+cursor.execute("""
+CREATE TABLE IF NOT EXISTS psych_journal(
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    date TEXT,
+    mood TEXT,
+    note TEXT,
+    subscription_key TEXT
+)
+""")
+
+conn.commit()
+
+# ==================================
 # SAFE COLUMN MIGRATION
 # ==================================
 def add_column_if_missing(column_name, definition):
@@ -2739,8 +2754,20 @@ with psychology:
     st.markdown("## 🧠 Trading Psychology & Mindset")
     st.markdown("Log your mindset, track your mood, and get actionable psychology prompts.")
     moods = ["😃 Great", "🙂 Good", "😐 Neutral", "😟 Stressed", "😢 Down"]
+    # Load persisted psychology notes for this subscription
     if 'psych_journal' not in st.session_state:
-        st.session_state['psych_journal'] = []
+        try:
+            cursor.execute(
+                "SELECT date, mood, note FROM psych_journal WHERE subscription_key=? ORDER BY id DESC",
+                (get_current_subscription_key(),)
+            )
+            rows = cursor.fetchall()
+            st.session_state['psych_journal'] = [
+                {"date": r[0], "mood": r[1], "note": r[2]} for r in rows
+            ]
+        except Exception:
+            st.session_state['psych_journal'] = []
+
     st.markdown("### Today's Mood")
     mood = st.radio("How do you feel about your trading today?", moods, horizontal=True)
     st.markdown("---")
@@ -2759,9 +2786,33 @@ with psychology:
         psych_note = st.text_area("Write a detailed psychology note or reflection")
         submitted = st.form_submit_button("Add Note")
         if submitted and psych_note:
-            st.session_state['psych_journal'].append({"note": psych_note, "date": str(datetime.now().date()), "mood": mood})
-    for entry in reversed(st.session_state['psych_journal']):
+            date_str = str(datetime.now())
+            try:
+                cursor.execute(
+                    "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                    (date_str, mood, psych_note, get_current_subscription_key()),
+                )
+                conn.commit()
+            except Exception as e:
+                st.error(f"Failed to save note: {e}")
+            else:
+                # update session cache and rerun to refresh UI
+                st.session_state['psych_journal'].insert(0, {"date": date_str, "mood": mood, "note": psych_note})
+                st.success("Psychology note saved")
+                st.rerun()
+
+    # Display persisted notes
+    for entry in st.session_state.get('psych_journal', []):
         st.write(f"{entry['date']} {entry['mood']}: {entry['note']}")
+
+    # CSV export for psychology notes
+    if st.session_state.get('psych_journal'):
+        try:
+            df_psych = pd.DataFrame(st.session_state['psych_journal'])
+            csv_data = df_psych.to_csv(index=False)
+            st.download_button(label="📥 Download Psychology Notes as CSV", data=csv_data, file_name="psych_notes.csv")
+        except Exception:
+            pass
 
 # ==================================
 # ADMIN TAB
