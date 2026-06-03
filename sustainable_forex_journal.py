@@ -23,10 +23,18 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 # ==================================
 st.set_page_config(
     page_title="Forex Tracker Pro",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="expanded"
 )
 
 st.title("📊 Forex Tracker Pro Ultimate")
+st.markdown(
+    "A polished forex trade journal to log entries, review quality, and track performance with clean dashboards and actionable analytics."
+)
+st.markdown(
+    "Use the tabs to navigate between Dashboard, Journal, Analytics, Risk, Compounding, Goals, Psychology, and Admin tools."
+)
+st.markdown("---")
 
 TERMS_AND_CONDITIONS = '''
 Forex Tracker Pro is a personal trading journal and performance tracking tool. By using this app to save trade details, you agree to the following terms:
@@ -1147,6 +1155,19 @@ def calc_metrics(df):
 df = load_trades()
 metrics = calc_metrics(df)
 
+with st.sidebar:
+    st.header("Quick Snapshot")
+    st.metric("Trades", metrics["total_trades"])
+    st.metric("Net Profit", f"${metrics['total_profit']:,.2f}")
+    st.metric("Win Rate", f"{metrics['win_rate']:.1f}%")
+    saved_account = st.session_state.get("account_id", "")
+    if saved_account:
+        st.markdown(f"**Account:** `{saved_account}`")
+    else:
+        st.markdown("**Account:** _not set_")
+    st.markdown("---")
+    st.markdown("Tip: Save the Account ID from the Dashboard tab to lock this report.")
+
 # ==================================
 # TABS
 # ==================================
@@ -1984,6 +2005,9 @@ with analytics:
 with journal:
 
     st.subheader("📖 Advanced Trade Journal")
+    st.info(
+        "Enter your trade details clearly, review the setup quality score, and save a complete trade review with notes and screenshot proof."
+    )
     
     # Download CSV section
     if not df.empty:
@@ -1996,6 +2020,10 @@ with journal:
                 file_name="trades_export.csv",
                 mime="text/csv"
             )
+        with col2:
+            st.caption("Export your trade history for offline review or import into Excel.")
+
+    st.markdown("---")
 
     with st.form("trade_form"):
 
@@ -2108,6 +2136,8 @@ with journal:
                 round(r_multiple, 2)
             )
 
+        st.markdown("---")
+
         # ==========================
         # SESSION TRACKING
         # ==========================
@@ -2134,13 +2164,15 @@ with journal:
         with col1:
 
             entry_time = st.time_input(
-                "Entry Time"
+                "Entry Time",
+                step=timedelta(minutes=1)
             )
 
         with col2:
 
             exit_time = st.time_input(
-                "Exit Time"
+                "Exit Time",
+                step=timedelta(minutes=1)
             )
 
         auto_duration = (
@@ -2171,6 +2203,8 @@ with journal:
         st.info(
             f"Trade Duration: {duration:.0f} minutes"
         )
+
+        st.markdown("---")
 
         # ==========================
         # MAIN SETUP
@@ -2281,92 +2315,92 @@ with journal:
         else:
             grade = "D"
 
-        st.success(
-            f"Setup Grade: {grade} ({setup_score}/6)"
+        st.metric(
+            "Setup Grade",
+            f"{grade}",
+            f"{setup_score}/6"
         )
+        st.caption("Grading is capped at a maximum of 6 quality points.")
 
-        # ==========================
-        # TAGGING SYSTEM
-        # ==========================
-        st.markdown("### Trade Tags")
-
-        tags = st.multiselect(
-            "Tags",
-            [
-                "Liquidity Sweep",
-                "FVG",
-                "iFVG",
-                "Order Block",
-                "Breaker",
-                "SMT",
-                "CISD",
-                "CRT",
-                "20 EMA",
-                "News",
-                "London Open",
-                "New York Open",
-                "Continuation",
-                "Reversal",
-                "Scalp",
-                "Intraday",
-                "Swing"
-            ]
-        )
-
-        # ==========================
-        # MISTAKE TRACKING
-        # ==========================
-        st.markdown("### Mistake Tracking")
-
-        mistakes = st.multiselect(
-            "Mistakes Made",
-            [
-                "FOMO",
-                "Overtrading",
-                "Moved Stop Loss",
-                "Moved Take Profit",
-                "Revenge Trading",
-                "Ignored HTF Bias",
-                "Early Exit",
-                "Late Entry",
-                "No Confirmation",
-                "Risked Too Much"
-            ]
-        )
-
-        # ==========================
-        # SCREENSHOTS
-        # ==========================
-        st.markdown("### Screenshot Upload")
-
-        uploaded_screenshot = st.file_uploader(
-            "Upload a PNG, JPG, or JPEG screenshot of the trade.",
-            type=["png", "jpg", "jpeg"]
-        )
+        st.markdown("---")
 
         screenshot_path = ""
-        if uploaded_screenshot is not None:
-            screenshot_filename = (
-                f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
-                f"{secrets.token_hex(4)}_{uploaded_screenshot.name}"
-            )
-            screenshot_path = os.path.join("screenshots", screenshot_filename)
-            try:
-                with open(screenshot_path, "wb") as file:
-                    file.write(uploaded_screenshot.getbuffer())
-                st.image(screenshot_path, caption="Uploaded screenshot", use_column_width=True)
-            except Exception as exc:
-                st.error(f"Unable to save screenshot: {exc}")
-                screenshot_path = ""
+        notes = ""
 
-        # ==========================
-        # NOTES
-        # ==========================
-        st.markdown("### Trade Notes")
+        with st.expander("🧠 Optional review + tags", expanded=False):
+            st.markdown("### Trade Tags")
+            tags = st.multiselect(
+                "Tags",
+                [
+                    "Liquidity Sweep",
+                    "FVG",
+                    "iFVG",
+                    "Order Block",
+                    "Breaker",
+                    "SMT",
+                    "CISD",
+                    "CRT",
+                    "20 EMA",
+                    "News",
+                    "London Open",
+                    "New York Open",
+                    "Continuation",
+                    "Reversal",
+                    "Scalp",
+                    "Intraday",
+                    "Swing"
+                ]
+            )
+
+            st.markdown("### Mistake Tracking")
+            mistakes = st.multiselect(
+                "Mistakes Made",
+                [
+                    "FOMO",
+                    "Overtrading",
+                    "Moved Stop Loss",
+                    "Moved Take Profit",
+                    "Revenge Trading",
+                    "Ignored HTF Bias",
+                    "Early Exit",
+                    "Late Entry",
+                    "No Confirmation",
+                    "Risked Too Much"
+                ]
+            )
+
+            st.markdown("### Screenshot Upload")
+            uploaded_screenshot = st.file_uploader(
+                "Upload a PNG, JPG, or JPEG screenshot of the trade.",
+                type=["png", "jpg", "jpeg"]
+            )
+
+            if uploaded_screenshot is not None:
+                screenshot_filename = (
+                    f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
+                    f"{secrets.token_hex(4)}_{uploaded_screenshot.name}"
+                )
+                screenshot_path = os.path.join("screenshots", screenshot_filename)
+                try:
+                    with open(screenshot_path, "wb") as file:
+                        file.write(uploaded_screenshot.getbuffer())
+                    st.image(screenshot_path, caption="Uploaded screenshot", use_column_width=True)
+                except Exception as exc:
+                    st.error(f"Unable to save screenshot: {exc}")
+                    screenshot_path = ""
+
+            st.markdown("### Trade Notes")
+            notes = st.text_area(
+                "Journal Notes"
+            )
+
+        st.markdown("---")
 
         notes = st.text_area(
             "Journal Notes"
         )
+
+        st.markdown("---")
 
         # ==========================
         # AI REVIEW
