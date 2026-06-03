@@ -1466,6 +1466,17 @@ with dashboard:
 
     st.subheader("📈 Sustainable Style Performance Dashboard")
 
+    account_id = st.text_input(
+        "Account ID",
+        value=st.session_state.get("account_id", ""),
+        key="dashboard_account_id"
+    )
+
+    if account_id:
+        st.markdown(f"**Current Account:** `{account_id}`")
+    else:
+        st.info("Enter an Account ID to represent this dashboard.")
+
     # ==========================
     # KPI ROW 1
     # ==========================
