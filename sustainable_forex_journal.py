@@ -2780,6 +2780,30 @@ with psychology:
     ]
     for prompt in prompts:
         st.text_input(prompt, key=f"prompt_{prompt}")
+    if st.button("Save Quick Reflections"):
+        responses = []
+        for prompt in prompts:
+            resp = st.session_state.get(f"prompt_{prompt}", "").strip()
+            if resp:
+                responses.append(f"{prompt}: {resp}")
+        if responses:
+            note = "\n".join(responses)
+            date_str = str(datetime.now())
+            try:
+                cursor.execute(
+                    "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                    (date_str, mood, note, get_current_subscription_key()),
+                )
+                conn.commit()
+            except Exception as e:
+                st.error(f"Failed to save quick reflections: {e}")
+            else:
+                st.session_state.setdefault('psych_journal', [])
+                st.session_state['psych_journal'].insert(0, {"date": date_str, "mood": mood, "note": note})
+                st.success("Quick reflections saved")
+                st.rerun()
+        else:
+            st.warning("No responses entered to save.")
     st.markdown("---")
     st.markdown("### Psychology Journal")
     with st.form("psych_form"):
