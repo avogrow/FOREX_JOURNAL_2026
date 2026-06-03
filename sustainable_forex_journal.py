@@ -2545,46 +2545,12 @@ with journal:
 
             conn.commit()
 
-            # Reset the trade entry form state so the user can add a new trade immediately.
-            # Use only JSON-serializable values for session state
-            defaults = {
-                "symbol": "EURUSD",
-                "direction": "BUY",
-                "entry": 0.0,
-                "lot": 0.10,
-                "exit_price": 0.0,
-                "profit": 0.0,
-                "commission": 0.0,
-                "risk": 100.0,
-                "stop_loss": 0.0,
-                "take_profit": 0.0,
-                "trade_session": "Asian",
-                "timeframe": "1H",
-                "duration": 0.0,
-                "setup": "Order Block",
-                "liquidity_sweep": False,
-                "htf_bias": False,
-                "equal_high": False,
-                "fvg_present": False,
-                "cisd_present": False,
-                "ifvg_present": False,
-                "session_valid": False,
-                "displacement": False,
-                "equal_low": False,
-                "v_shape": False,
-                "delivery_from_fvg": False,
-                "tags": [],
-                "mistakes": [],
-                "uploaded_screenshot": None,
-                "journal_notes": "",
-                "accept_terms": False
-            }
-            for key, value in defaults.items():
-                st.session_state[key] = value
-
             st.success(
                 "Trade Saved Successfully ✅"
             )
+            
+            # Rerun to reset the form
+            st.rerun()
             
             # Add CSV download option
             if not df.empty:
