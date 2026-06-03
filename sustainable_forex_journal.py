@@ -2779,12 +2779,12 @@ with psychology:
     if 'psych_journal' not in st.session_state:
         try:
             cursor.execute(
-                "SELECT date, mood, note FROM psych_journal WHERE subscription_key=? ORDER BY id DESC",
+                "SELECT id, date, mood, note FROM psych_journal WHERE subscription_key=? ORDER BY id DESC",
                 (get_current_subscription_key(),)
             )
             rows = cursor.fetchall()
             st.session_state['psych_journal'] = [
-                {"date": r[0], "mood": r[1], "note": r[2]} for r in rows
+                {"id": r[0], "date": r[1], "mood": r[2], "note": r[3]} for r in rows
             ]
         except Exception:
             st.session_state['psych_journal'] = []
@@ -2816,11 +2816,12 @@ with psychology:
                     (date_str, mood, note, get_current_subscription_key()),
                 )
                 conn.commit()
+                new_id = cursor.lastrowid
             except Exception as e:
                 st.error(f"Failed to save quick reflections: {e}")
             else:
                 st.session_state.setdefault('psych_journal', [])
-                st.session_state['psych_journal'].insert(0, {"date": date_str, "mood": mood, "note": note})
+                st.session_state['psych_journal'].insert(0, {"id": new_id, "date": date_str, "mood": mood, "note": note})
                 st.success("Quick reflections saved")
                 st.rerun()
         else:
@@ -2838,17 +2839,37 @@ with psychology:
                     (date_str, mood, psych_note, get_current_subscription_key()),
                 )
                 conn.commit()
+                new_id = cursor.lastrowid
             except Exception as e:
                 st.error(f"Failed to save note: {e}")
             else:
                 # update session cache and rerun to refresh UI
-                st.session_state['psych_journal'].insert(0, {"date": date_str, "mood": mood, "note": psych_note})
+                st.session_state.setdefault('psych_journal', [])
+                st.session_state['psych_journal'].insert(0, {"id": new_id, "date": date_str, "mood": mood, "note": psych_note})
                 st.success("Psychology note saved")
                 st.rerun()
 
-    # Display persisted notes
-    for entry in st.session_state.get('psych_journal', []):
-        st.write(f"{entry['date']} {entry['mood']}: {entry['note']}")
+    # History expander with delete action
+    with st.expander("🕘 Psychology History", expanded=False):
+        entries = st.session_state.get('psych_journal', [])
+        if not entries:
+            st.info("No psychology notes yet.")
+        for entry in entries:
+            cols = st.columns([9,1])
+            with cols[0]:
+                st.markdown(f"**{entry['date']}** — {entry['mood']}")
+                st.write(entry['note'])
+            with cols[1]:
+                if st.button("Delete", key=f"del_psych_{entry.get('id')}"):
+                    try:
+                        cursor.execute("DELETE FROM psych_journal WHERE id=?", (entry.get('id'),))
+                        conn.commit()
+                        # remove from session cache
+                        st.session_state['psych_journal'] = [e for e in st.session_state['psych_journal'] if e.get('id') != entry.get('id')]
+                        st.success("Entry deleted")
+                        st.rerun()
+                    except Exception as e:
+                        st.error(f"Failed to delete entry: {e}")
 
     # CSV export for psychology notes
     if st.session_state.get('psych_journal'):
