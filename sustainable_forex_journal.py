@@ -7,6 +7,7 @@ import requests
 from datetime import datetime, timedelta
 import csv
 import os
+import glob
 import json
 import smtplib
 import hashlib
@@ -1029,6 +1030,7 @@ add_column_if_missing("trades", "screenshot", "TEXT")
 add_column_if_missing("trades", "subscription_key", "TEXT")
 add_column_if_missing("trades", "ai_review", "TEXT")
 add_column_if_missing("subscription_keys", "account_id", "TEXT DEFAULT ''")
+offer_legacy_trade_restore()
 
 # ==================================
 # LOAD DATA
@@ -1068,6 +1070,204 @@ def load_trades():
         )
 
     return df
+
+
+def count_trades_for_key(key):
+    if not key:
+        return 0
+    try:
+        return cursor.execute(
+            "SELECT COUNT(*) FROM trades WHERE subscription_key = ?",
+            (key,)
+        ).fetchone()[0] or 0
+    except Exception:
+        return 0
+
+
+def find_report_history_files():
+    return sorted(glob.glob(os.path.join(BASE_DIR, "ReportHistory-*.xlsx")))
+
+
+def parse_legacy_report_time(value):
+    if pd.isna(value) or value is None:
+        return None
+    text = str(value).strip()
+    if not text:
+        return None
+
+    for fmt in (
+        "%Y.%m.%d %H:%M:%S",
+        "%Y-%m-%d %H:%M:%S",
+        "%d.%m.%Y %H:%M:%S",
+        "%Y/%m/%d %H:%M:%S",
+    ):
+        try:
+            return datetime.strptime(text, fmt)
+        except Exception:
+            pass
+
+    return None
+
+
+def restore_trades_from_report_history(file_path, subscription_key):
+    if not file_path or not os.path.exists(file_path):
+        return 0
+
+    try:
+        xls = pd.ExcelFile(file_path)
+    except Exception:
+        return 0
+
+    imported = 0
+    for sheet_name in xls.sheet_names:
+        df_raw = xls.parse(sheet_name, header=None)
+
+        header_row = None
+        for idx, row in df_raw.iterrows():
+            values = [
+                str(v).strip().lower() if not pd.isna(v) else ""
+                for v in row.tolist()
+            ]
+            if "position" in values and "symbol" in values and "profit" in values and "commission" in values:
+                header_row = idx
+                break
+
+        if header_row is None:
+            continue
+
+        raw_header = df_raw.iloc[header_row].tolist()
+        header = []
+        counts = {}
+        for raw_col in raw_header:
+            name = str(raw_col).strip() if not pd.isna(raw_col) else ""
+            key = name.lower()
+            if key in counts:
+                counts[key] += 1
+                key = f"{key}.{counts[key]}"
+            else:
+                counts[key] = 0
+            header.append(key)
+
+        data_df = df_raw.iloc[header_row + 1 :].copy()
+        data_df.columns = header
+        data_df = data_df.dropna(how="all")
+
+        for _, row in data_df.iterrows():
+            symbol = str(row.get("symbol", "")).strip()
+            direction = str(row.get("type", "")).strip().lower()
+            if not symbol or direction not in ("buy", "sell"):
+                continue
+
+            profit = pd.to_numeric(row.get("profit"), errors="coerce")
+            entry_price = pd.to_numeric(row.get("price"), errors="coerce")
+            exit_price = pd.to_numeric(row.get("price.1"), errors="coerce") if "price.1" in row.index else None
+
+            if pd.isna(profit) and pd.isna(exit_price):
+                continue
+
+            open_time = parse_legacy_report_time(row.get("time"))
+            close_time = parse_legacy_report_time(row.get("time.1"))
+            if close_time is None:
+                close_time = parse_legacy_report_time(row.get("close time"))
+
+            date_value = ""
+            if open_time:
+                date_value = open_time.date().isoformat()
+            elif close_time:
+                date_value = close_time.date().isoformat()
+
+            duration = 0.0
+            if open_time and close_time:
+                duration = (close_time - open_time).total_seconds() / 60
+
+            commission = pd.to_numeric(row.get("commission"), errors="coerce")
+            if pd.isna(commission):
+                commission = 0.0
+
+            lot = pd.to_numeric(row.get("volume"), errors="coerce")
+            if pd.isna(lot):
+                lot = 0.0
+
+            cursor.execute(
+                """
+                INSERT INTO trades(
+                    date, symbol, direction, entry, exit, lot, profit,
+                    commission, setup, notes, risk, r_multiple, session,
+                    timeframe, setup_score, tags, mistake_type,
+                    entry_time, exit_time, duration, screenshot,
+                    subscription_key, ai_review
+                )
+                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    date_value,
+                    symbol,
+                    direction,
+                    None if pd.isna(entry_price) else float(entry_price),
+                    None if pd.isna(exit_price) else float(exit_price),
+                    float(lot),
+                    0.0 if pd.isna(profit) else float(profit),
+                    float(commission),
+                    "",
+                    "",
+                    0.0,
+                    0.0,
+                    "",
+                    "",
+                    0,
+                    "",
+                    "",
+                    open_time.isoformat() if open_time else "",
+                    close_time.isoformat() if close_time else "",
+                    float(duration),
+                    "",
+                    subscription_key,
+                    ""
+                )
+            )
+            imported += 1
+
+    conn.commit()
+    return imported
+
+
+def rerun_app():
+    if hasattr(st, "rerun"):
+        st.rerun()
+    elif hasattr(st, "experimental_rerun"):
+        st.experimental_rerun()
+
+
+def offer_legacy_trade_restore():
+    current_key = get_current_subscription_key()
+    if not current_key:
+        return
+
+    if count_trades_for_key(current_key) > 0:
+        return
+
+    report_files = find_report_history_files()
+    if not report_files:
+        return
+
+    backup_file = report_files[0]
+    st.sidebar.markdown("---")
+    st.sidebar.warning(
+        f"No saved trades were found for your current license key. A legacy backup file was detected: `{os.path.basename(backup_file)}`."
+    )
+
+    if st.sidebar.button("Restore legacy trade history"):
+        imported = restore_trades_from_report_history(backup_file, current_key)
+        if imported:
+            st.sidebar.success(
+                f"Imported {imported} legacy trade(s) from {os.path.basename(backup_file)}."
+            )
+            rerun_app()
+        else:
+            st.sidebar.error(
+                "No trades were imported. The backup file may not contain compatible trade rows."
+            )
+
 
 def parse_time_string(time_str):
     try:
