@@ -63,7 +63,7 @@ def style_profit_column(df):
             return "color: red"
         return "color: black"
 
-    return df.style.applymap(profit_color, subset=["profit"])
+    return df.style.map(profit_color, subset=["profit"])
 
 
 # ==================================
@@ -2306,17 +2306,14 @@ with analytics:
                 "🏆 Top 10 Trades"
             )
 
-            st.dataframe(
-
+            st.write(
                 style_profit_column(
                     df.sort_values(
                         "profit",
                         ascending=False
                     )
                     .head(10)
-                ),
-
-                use_container_width=True
+                )
             )
 
         with c2:
@@ -2325,17 +2322,14 @@ with analytics:
                 "💀 Worst 10 Trades"
             )
 
-            st.dataframe(
-
+            st.write(
                 style_profit_column(
                     df.sort_values(
                         "profit",
                         ascending=True
                     )
                     .head(10)
-                ),
-
-                use_container_width=True
+                )
             )
 
 # ==================================
