@@ -2905,6 +2905,25 @@ Session: {session}
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xls", "xlsx"], key="bulk_import_file")
 
     if uploaded_file is not None:
+        preview_df = None
+        preview_error = None
+        try:
+            suffix = os.path.splitext(uploaded_file.name)[1].lower() or ".xlsx"
+            raw_bytes = uploaded_file.getvalue()
+            if suffix in (".xls", ".xlsx"):
+                xls = pd.ExcelFile(io.BytesIO(raw_bytes))
+                preview_df = xls.parse(xls.sheet_names[0], header=None)
+            else:
+                preview_df = pd.read_csv(io.BytesIO(raw_bytes), nrows=10)
+        except Exception as e:
+            preview_error = str(e)
+
+        if preview_error:
+            st.warning(f"Preview unavailable: {preview_error}")
+        elif preview_df is not None:
+            st.write("### Uploaded file preview")
+            st.dataframe(preview_df.head(10))
+
         if not current_key:
             st.warning("Set or enter your subscription key before importing.")
         else:
