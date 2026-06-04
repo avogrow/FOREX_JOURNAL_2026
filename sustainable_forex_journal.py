@@ -200,6 +200,7 @@ def create_subscription_keys_table():
             plan TEXT,
             expires TEXT,
             active INTEGER DEFAULT 1,
+            account_id TEXT DEFAULT '',
             created_at TEXT,
             updated_at TEXT
         )
@@ -915,6 +916,13 @@ conn = sqlite3.connect(
 cursor = conn.cursor()
 
 create_subscription_keys_table()
+try:
+    cursor.execute(
+        "ALTER TABLE subscription_keys ADD COLUMN account_id TEXT DEFAULT ''"
+    )
+    conn.commit()
+except Exception:
+    pass
 
 show_subscription_gate()
 restore_saved_account_from_key()
