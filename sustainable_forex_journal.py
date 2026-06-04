@@ -215,7 +215,7 @@ def get_db_subscription_metadata(key):
 
     key_hash = hash_subscription_key(key)
     cursor.execute(
-        "SELECT key_hash, key_label, user, email, plan, expires, active FROM subscription_keys WHERE key_hash = ?",
+        "SELECT key_hash, key_label, user, email, plan, expires, active, account_id FROM subscription_keys WHERE key_hash = ?",
         (key_hash,)
     )
     row = cursor.fetchone()
@@ -231,14 +231,68 @@ def get_db_subscription_metadata(key):
         "plan": row[4],
         "expires": row[5],
         "active": bool(row[6]),
+        "account_id": row[7],
         "source": "db"
     }
+
+
+def get_saved_account_id_for_key(key):
+    if not key:
+        return ""
+    meta = get_db_subscription_metadata(key)
+    return meta.get("account_id", "") if meta else ""
+
+
+def save_subscription_account_id(key, account_id):
+    if not key:
+        return False
+    key_hash = hash_subscription_key(key)
+    now = datetime.now().isoformat()
+    try:
+        cursor.execute(
+            "UPDATE subscription_keys SET account_id = ?, updated_at = ? WHERE key_hash = ?",
+            (account_id, now, key_hash)
+        )
+        if cursor.rowcount == 0:
+            cursor.execute(
+                "INSERT OR REPLACE INTO subscription_keys(key_hash, key_label, user, email, plan, expires, active, account_id, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
+                (
+                    key_hash,
+                    key_hash[:8],
+                    "",
+                    "",
+                    "",
+                    "",
+                    1,
+                    account_id,
+                    now,
+                    now
+                )
+            )
+        conn.commit()
+        return True
+    except Exception:
+        return False
+
+
+def restore_saved_account_from_key():
+    current_key = get_current_subscription_key()
+    if not current_key:
+        return
+
+    if st.session_state.get("account_id") or st.session_state.get("account_id_saved", False):
+        return
+
+    account_id = get_saved_account_id_for_key(current_key)
+    if account_id:
+        st.session_state["account_id"] = account_id
+        st.session_state["account_id_saved"] = True
 
 
 def get_all_db_subscription_keys():
 
     cursor.execute(
-        "SELECT id, key_hash, key_label, user, email, plan, expires, active, created_at, updated_at FROM subscription_keys ORDER BY id DESC"
+        "SELECT id, key_hash, key_label, user, email, plan, expires, active, account_id, created_at, updated_at FROM subscription_keys ORDER BY id DESC"
     )
     rows = cursor.fetchall()
 
@@ -253,14 +307,15 @@ def get_all_db_subscription_keys():
             "plan": row[5],
             "expires": row[6],
             "active": bool(row[7]),
-            "created_at": row[8],
-            "updated_at": row[9]
+            "account_id": row[8],
+            "created_at": row[9],
+            "updated_at": row[10]
         })
 
     return keys
 
 
-def set_db_subscription_key(key, user, email, plan, expires, active=True):
+def set_db_subscription_key(key, user, email, plan, expires, active=True, account_id=""):
 
     key_hash = hash_subscription_key(key)
     key_label = key_hash[:8]
@@ -268,7 +323,7 @@ def set_db_subscription_key(key, user, email, plan, expires, active=True):
 
     try:
         cursor.execute(
-            "INSERT OR REPLACE INTO subscription_keys(key_hash, key_label, user, email, plan, expires, active, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?)",
+            "INSERT OR REPLACE INTO subscription_keys(key_hash, key_label, user, email, plan, expires, active, account_id, created_at, updated_at) VALUES(?,?,?,?,?,?,?,?,?,?)",
             (
                 key_hash,
                 key_label,
@@ -277,6 +332,7 @@ def set_db_subscription_key(key, user, email, plan, expires, active=True):
                 plan,
                 expires,
                 1 if active else 0,
+                account_id,
                 now,
                 now
             )
@@ -861,6 +917,7 @@ cursor = conn.cursor()
 create_subscription_keys_table()
 
 show_subscription_gate()
+restore_saved_account_from_key()
 
 # ==================================
 # MAIN TABLE
@@ -939,30 +996,31 @@ conn.commit()
 # ==================================
 # SAFE COLUMN MIGRATION
 # ==================================
-def add_column_if_missing(column_name, definition):
+def add_column_if_missing(table_name, column_name, definition):
 
     try:
         cursor.execute(
-            f"ALTER TABLE trades ADD COLUMN {column_name} {definition}"
+            f"ALTER TABLE {table_name} ADD COLUMN {column_name} {definition}"
         )
         conn.commit()
     except:
         pass
 
-add_column_if_missing("commission", "REAL DEFAULT 0")
-add_column_if_missing("risk", "REAL DEFAULT 0")
-add_column_if_missing("r_multiple", "REAL DEFAULT 0")
-add_column_if_missing("session", "TEXT")
-add_column_if_missing("timeframe", "TEXT")
-add_column_if_missing("setup_score", "INTEGER DEFAULT 0")
-add_column_if_missing("tags", "TEXT")
-add_column_if_missing("mistake_type", "TEXT")
-add_column_if_missing("entry_time", "TEXT")
-add_column_if_missing("exit_time", "TEXT")
-add_column_if_missing("duration", "REAL DEFAULT 0")
-add_column_if_missing("screenshot", "TEXT")
-add_column_if_missing("subscription_key", "TEXT")
-add_column_if_missing("ai_review", "TEXT")
+add_column_if_missing("trades", "commission", "REAL DEFAULT 0")
+add_column_if_missing("trades", "risk", "REAL DEFAULT 0")
+add_column_if_missing("trades", "r_multiple", "REAL DEFAULT 0")
+add_column_if_missing("trades", "session", "TEXT")
+add_column_if_missing("trades", "timeframe", "TEXT")
+add_column_if_missing("trades", "setup_score", "INTEGER DEFAULT 0")
+add_column_if_missing("trades", "tags", "TEXT")
+add_column_if_missing("trades", "mistake_type", "TEXT")
+add_column_if_missing("trades", "entry_time", "TEXT")
+add_column_if_missing("trades", "exit_time", "TEXT")
+add_column_if_missing("trades", "duration", "REAL DEFAULT 0")
+add_column_if_missing("trades", "screenshot", "TEXT")
+add_column_if_missing("trades", "subscription_key", "TEXT")
+add_column_if_missing("trades", "ai_review", "TEXT")
+add_column_if_missing("subscription_keys", "account_id", "TEXT DEFAULT ''")
 
 # ==================================
 # LOAD DATA
@@ -1540,8 +1598,11 @@ with dashboard:
     if not st.session_state.get("account_id_saved", False):
         if account_id:
             if st.button("Save Account", key="save_dashboard_account"):
+                current_key = get_current_subscription_key()
                 st.session_state["account_id"] = account_id.strip()
                 st.session_state["account_id_saved"] = True
+                if current_key:
+                    save_subscription_account_id(current_key, account_id.strip())
                 if hasattr(st, "rerun"):
                     st.rerun()
                 elif hasattr(st, "experimental_rerun"):
