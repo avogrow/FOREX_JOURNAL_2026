@@ -20,6 +20,52 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
+
+def format_currency(value):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return str(value)
+    return f"${value:,.2f}"
+
+
+def color_for_value(value):
+    try:
+        value = float(value)
+    except (TypeError, ValueError):
+        return "black"
+    if value > 0:
+        return "teal"
+    if value < 0:
+        return "red"
+    return "black"
+
+
+def render_currency_metric(col, label, value):
+    col.markdown(
+        f"**{label}**  \n<span style='font-size:1.5rem; color:{color_for_value(value)};'>{format_currency(value)}</span>",
+        unsafe_allow_html=True
+    )
+
+
+def style_profit_column(df):
+    if "profit" not in df.columns:
+        return df
+
+    def profit_color(val):
+        try:
+            v = float(val)
+        except (TypeError, ValueError):
+            return ""
+        if v > 0:
+            return "color: teal"
+        if v < 0:
+            return "color: red"
+        return "color: black"
+
+    return df.style.applymap(profit_color, subset=["profit"])
+
+
 # ==================================
 # CONFIG
 # ==================================
@@ -1444,13 +1490,13 @@ metrics = calc_metrics(df)
 with st.sidebar:
     st.header("Quick Snapshot")
     st.metric("Trades", metrics["total_trades"])
-    st.metric("Net Profit", f"${metrics['total_profit']:,.2f}")
+    render_currency_metric(st, "Net Profit", metrics['total_profit'])
     st.metric("Win Rate", f"{metrics['win_rate']:.1f}%")
     # Account size and balance
     account_size = st.session_state.get("account_size", None)
     account_size = st.number_input("Account Size (USD)", value=float(account_size) if account_size else 10000.0, step=100.0, format="%.2f", key="account_size")
     balance = account_size + metrics['total_profit']
-    st.metric("Account Balance", f"${balance:,.2f}")
+    render_currency_metric(st, "Account Balance", balance)
 
     saved_account = st.session_state.get("account_id", "")
     if saved_account:
@@ -1830,10 +1876,7 @@ with dashboard:
     # ==========================
     c1,c2,c3,c4,c5,c6 = st.columns(6)
 
-    c1.metric(
-        "💰 Net Profit",
-        f"${metrics['total_profit']:,.2f}"
-    )
+    render_currency_metric(c1, "💰 Net Profit", metrics['total_profit'])
 
     c2.metric(
         "🎯 Trades",
@@ -1850,10 +1893,7 @@ with dashboard:
         round(metrics["profit_factor"],2)
     )
 
-    c5.metric(
-        "⚡ Expectancy",
-        f"${metrics['expectancy']:.2f}"
-    )
+    render_currency_metric(c5, "⚡ Expectancy", metrics['expectancy'])
 
     c6.metric(
         "📊 Average R",
@@ -1867,30 +1907,15 @@ with dashboard:
     # ==========================
     c1,c2,c3,c4,c5,c6 = st.columns(6)
 
-    c1.metric(
-        "🥇 Largest Win",
-        f"${metrics['largest_win']:,.2f}"
-    )
+    render_currency_metric(c1, "🥇 Largest Win", metrics['largest_win'])
 
-    c2.metric(
-        "🥉 Largest Loss",
-        f"${metrics['largest_loss']:,.2f}"
-    )
+    render_currency_metric(c2, "🥉 Largest Loss", metrics['largest_loss'])
 
-    c3.metric(
-        "📈 Avg Winner",
-        f"${metrics['avg_win']:,.2f}"
-    )
+    render_currency_metric(c3, "📈 Avg Winner", metrics['avg_win'])
 
-    c4.metric(
-        "📉 Avg Loser",
-        f"${metrics['avg_loss']:,.2f}"
-    )
+    render_currency_metric(c4, "📉 Avg Loser", metrics['avg_loss'])
 
-    c5.metric(
-        "🔻 Max DD",
-        f"${metrics['max_dd']:,.2f}"
-    )
+    render_currency_metric(c5, "🔻 Max DD", metrics['max_dd'])
 
     c6.metric(
         "🔄 Recovery Factor",
@@ -2283,11 +2308,13 @@ with analytics:
 
             st.dataframe(
 
-                df.sort_values(
-                    "profit",
-                    ascending=False
-                )
-                .head(10),
+                style_profit_column(
+                    df.sort_values(
+                        "profit",
+                        ascending=False
+                    )
+                    .head(10)
+                ),
 
                 use_container_width=True
             )
@@ -2300,11 +2327,13 @@ with analytics:
 
             st.dataframe(
 
-                df.sort_values(
-                    "profit",
-                    ascending=True
-                )
-                .head(10),
+                style_profit_column(
+                    df.sort_values(
+                        "profit",
+                        ascending=True
+                    )
+                    .head(10)
+                ),
 
                 use_container_width=True
             )
@@ -2448,9 +2477,10 @@ with journal:
 
         col1, col2 = st.columns(2)
         with col1:
-            st.metric(
+            render_currency_metric(
+                col1,
                 "Net Profit/Loss",
-                f"${net_profit:.2f}"
+                net_profit
             )
         with col2:
             st.metric(
