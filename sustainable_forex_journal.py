@@ -6,6 +6,7 @@ import plotly.graph_objects as go
 import requests
 from datetime import datetime, timedelta
 import csv
+import io
 import os
 import glob
 import json
@@ -2892,9 +2893,60 @@ Session: {session}
     # ==================================
     # BULK IMPORT FROM CSV / XLSX
     # ==================================
-    # Bulk import feature removed - users must manually key in data
+    # Allow uploading a CSV or Excel export to import legacy trades
 
     st.divider()
+
+    current_key = get_current_subscription_key()
+
+    st.subheader("📥 Bulk import trades (CSV / Excel)")
+    st.caption("Upload a ReportHistory Excel file or a CSV export. Imported rows will be assigned to your active subscription key.")
+
+    uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xls", "xlsx"], key="bulk_import_file")
+
+    if uploaded_file is not None:
+        if not current_key:
+            st.warning("Set or enter your subscription key before importing.")
+        else:
+            st.info(f"Ready to import into subscription key: {current_key}")
+            if st.button("Import uploaded file"):
+                import tempfile
+                try:
+                    suffix = os.path.splitext(uploaded_file.name)[1] or ".xlsx"
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                        tmp.write(uploaded_file.getvalue())
+                        tmp_path = tmp.name
+
+                    imported = 0
+                    if suffix.lower() in (".xls", ".xlsx"):
+                        imported = restore_trades_from_report_history(tmp_path, current_key)
+                    else:
+                        # For CSV, attempt to parse as a simple table and reuse the excel restore by converting
+                        # to a temporary Excel file for compatibility with existing parser
+                        try:
+                            df_csv = pd.read_csv(tmp_path)
+                            excel_tmp = tmp_path + ".xlsx"
+                            df_csv.to_excel(excel_tmp, index=False)
+                            imported = restore_trades_from_report_history(excel_tmp, current_key)
+                            try:
+                                os.remove(excel_tmp)
+                            except Exception:
+                                pass
+                        except Exception:
+                            imported = 0
+
+                    try:
+                        os.remove(tmp_path)
+                    except Exception:
+                        pass
+
+                    if imported:
+                        st.success(f"Imported {imported} legacy trade(s).")
+                        rerun_app()
+                    else:
+                        st.error("No trades were imported. The file may not contain compatible trade rows.")
+                except Exception as e:
+                    st.error(f"Import failed: {e}")
 
     if not df.empty:
 
