@@ -1030,7 +1030,6 @@ add_column_if_missing("trades", "screenshot", "TEXT")
 add_column_if_missing("trades", "subscription_key", "TEXT")
 add_column_if_missing("trades", "ai_review", "TEXT")
 add_column_if_missing("subscription_keys", "account_id", "TEXT DEFAULT ''")
-offer_legacy_trade_restore()
 
 # ==================================
 # LOAD DATA
@@ -1267,6 +1266,8 @@ def offer_legacy_trade_restore():
             st.sidebar.error(
                 "No trades were imported. The backup file may not contain compatible trade rows."
             )
+
+offer_legacy_trade_restore()
 
 
 def parse_time_string(time_str):
