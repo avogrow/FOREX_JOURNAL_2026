@@ -2295,7 +2295,9 @@ with journal:
                 "SMT",
                 "Liquidity Sweep",
                 "CISD",
-                "CRT"
+                "CRT",
+                "20 EMA",
+                "No Strategy"
             ],
             key="setup"
         )
