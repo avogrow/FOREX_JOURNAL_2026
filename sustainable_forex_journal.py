@@ -100,59 +100,6 @@ Forex Tracker Pro is a personal trading journal and performance tracking tool. B
    - The app owner and developers are not liable for any losses, damages, or claims resulting from your use of this app.
    - Past results, performance dashboards, and simulated metrics are not guarantees of future performance.
 
-   Trader Reflection Questions (optional):
-
-   PART 1: YOUR WHY
-
-   1. Why do you want to learn trading?
-   2. What attracted you to trading in the first place?
-   3. What would becoming a consistently profitable trader mean for your life?
-   4. What problems would trading solve for you?
-   5. Who would benefit if you became successful?
-   6. What happens if nothing changes over the next 5 years?
-   7. Why is now the right time to commit to this journey?
-
-   PART 2: YOUR FINANCIAL VISION
-
-   8. What is your current trading account size?
-   9. What account size would make you feel proud of your progress 12 months from now?
-   10. What account size would completely change your life?
-   11. If you could consistently earn 3% per week, what would that mean to you?
-   12. How much monthly income would make a meaningful difference in your life?
-   13. What would you do with your first profitable month?
-   14. What would you do with your first funded payout?
-   15. What would financial freedom look like for you personally?
-
-   PART 3: THE POWER OF COMPOUNDING
-
-   Imagine you achieved 3% growth every week while protecting your capital and staying disciplined.
-
-   Answer:
-
-   16. Where could your account be in 1 year?
-   17. Where could your account be in 3 years?
-   18. How would your life change if you focused on consistency instead of quick profits?
-   19. What becomes possible when you stop gambling and start compounding?
-
-   PART 4: YOUR FUTURE TRADER IDENTITY
-
-   20. Describe the trader you want to become.
-   21. How does that trader manage risk?
-   22. How does that trader handle losses?
-   23. How does that trader approach winning trades?
-   24. What habits does that trader have?
-   25. What habits must you stop immediately?
-   26. What habits must you start building today?
-   27. How would your future self behave differently from your current self?
-
-   PART 5: COMMITMENT
-
-   28. What are you willing to sacrifice over the next 90 days?
-   29. What distractions are holding you back?
-   30. On a scale of 1–10, how committed are you to becoming a disciplined trader?
-   31. What would make that commitment a 10?
-   32. What promise are you making to yourself today?
-
 4. Privacy and Data Storage
    - Your trade logs and uploads are stored locally or in the configured database.
    - You are responsible for protecting any personally identifiable information or sensitive data you provide.
@@ -1581,7 +1528,7 @@ with st.sidebar:
     dashboard,
     journal,
     analytics,
-    risk,
+    risk_tab,
     compounding,
     goals,
     psychology,
@@ -3130,7 +3077,7 @@ Session: {session}
 # ==================================
 # RISK TAB
 # ==================================
-with risk:
+with risk_tab:
     st.markdown("## 🛡 Risk Reflection Questionnaire")
     st.markdown(
         "Use this section to answer focused risk and mindset questions that support consistent trading discipline."
