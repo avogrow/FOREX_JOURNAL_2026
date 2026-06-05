@@ -3152,12 +3152,11 @@ with risk_tab:
         for idx, question in enumerate(RISK_QUESTIONS, start=1):
             answer_key = f"risk_question_{idx}"
             existing_answer = saved_answers.get(str(idx), "")
-            st.text_area(
+            st.text_input(
                 f"{idx}. {question}",
                 value=existing_answer,
                 key=answer_key,
-                disabled=bool(existing_answer),
-                height=140
+                disabled=bool(existing_answer)
             )
 
         save_reflection = st.form_submit_button("Save Risk Reflection")
