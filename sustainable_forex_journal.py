@@ -100,6 +100,59 @@ Forex Tracker Pro is a personal trading journal and performance tracking tool. B
    - The app owner and developers are not liable for any losses, damages, or claims resulting from your use of this app.
    - Past results, performance dashboards, and simulated metrics are not guarantees of future performance.
 
+   Trader Reflection Questions (optional):
+
+   PART 1: YOUR WHY
+
+   1. Why do you want to learn trading?
+   2. What attracted you to trading in the first place?
+   3. What would becoming a consistently profitable trader mean for your life?
+   4. What problems would trading solve for you?
+   5. Who would benefit if you became successful?
+   6. What happens if nothing changes over the next 5 years?
+   7. Why is now the right time to commit to this journey?
+
+   PART 2: YOUR FINANCIAL VISION
+
+   8. What is your current trading account size?
+   9. What account size would make you feel proud of your progress 12 months from now?
+   10. What account size would completely change your life?
+   11. If you could consistently earn 3% per week, what would that mean to you?
+   12. How much monthly income would make a meaningful difference in your life?
+   13. What would you do with your first profitable month?
+   14. What would you do with your first funded payout?
+   15. What would financial freedom look like for you personally?
+
+   PART 3: THE POWER OF COMPOUNDING
+
+   Imagine you achieved 3% growth every week while protecting your capital and staying disciplined.
+
+   Answer:
+
+   16. Where could your account be in 1 year?
+   17. Where could your account be in 3 years?
+   18. How would your life change if you focused on consistency instead of quick profits?
+   19. What becomes possible when you stop gambling and start compounding?
+
+   PART 4: YOUR FUTURE TRADER IDENTITY
+
+   20. Describe the trader you want to become.
+   21. How does that trader manage risk?
+   22. How does that trader handle losses?
+   23. How does that trader approach winning trades?
+   24. What habits does that trader have?
+   25. What habits must you stop immediately?
+   26. What habits must you start building today?
+   27. How would your future self behave differently from your current self?
+
+   PART 5: COMMITMENT
+
+   28. What are you willing to sacrifice over the next 90 days?
+   29. What distractions are holding you back?
+   30. On a scale of 1–10, how committed are you to becoming a disciplined trader?
+   31. What would make that commitment a 10?
+   32. What promise are you making to yourself today?
+
 4. Privacy and Data Storage
    - Your trade logs and uploads are stored locally or in the configured database.
    - You are responsible for protecting any personally identifiable information or sensitive data you provide.
@@ -3075,6 +3128,122 @@ Session: {session}
             )
     
 # ==================================
+# RISK TAB
+# ==================================
+with risk:
+    st.markdown("## 🛡 Risk Reflection Questionnaire")
+    st.markdown(
+        "Use this section to answer focused risk and mindset questions that support consistent trading discipline."
+    )
+    st.info(
+        "Your saved risk reflections are stored in the Psychology tab under Psychology History."
+    )
+    st.markdown("---")
+
+    with st.form("risk_reflection_form"):
+        st.markdown("### PART 1: YOUR WHY")
+        st.markdown(
+            "1. Why do you want to learn trading?\n"
+            "2. What attracted you to trading in the first place?\n"
+            "3. What would becoming a consistently profitable trader mean for your life?\n"
+            "4. What problems would trading solve for you?\n"
+            "5. Who would benefit if you became successful?\n"
+            "6. What happens if nothing changes over the next 5 years?\n"
+            "7. Why is now the right time to commit to this journey?"
+        )
+        part1_response = st.text_area(
+            "Your Part 1 reflections",
+            key="risk_reflection_part1",
+            height=200
+        )
+
+        st.markdown("### PART 2: YOUR FINANCIAL VISION")
+        st.markdown(
+            "8. What is your current trading account size?\n"
+            "9. What account size would make you feel proud of your progress 12 months from now?\n"
+            "10. What account size would completely change your life?\n"
+            "11. If you could consistently earn 3% per week, what would that mean to you?\n"
+            "12. How much monthly income would make a meaningful difference in your life?\n"
+            "13. What would you do with your first profitable month?\n"
+            "14. What would you do with your first funded payout?\n"
+            "15. What would financial freedom look like for you personally?"
+        )
+        part2_response = st.text_area(
+            "Your Part 2 reflections",
+            key="risk_reflection_part2",
+            height=200
+        )
+
+        st.markdown("### PART 3: THE POWER OF COMPOUNDING")
+        st.markdown(
+            "16. Where could your account be in 1 year?\n"
+            "17. Where could your account be in 3 years?\n"
+            "18. How would your life change if you focused on consistency instead of quick profits?\n"
+            "19. What becomes possible when you stop gambling and start compounding?"
+        )
+        part3_response = st.text_area(
+            "Your Part 3 reflections",
+            key="risk_reflection_part3",
+            height=200
+        )
+
+        st.markdown("### PART 4: YOUR FUTURE TRADER IDENTITY")
+        st.markdown(
+            "20. Describe the trader you want to become.\n"
+            "21. How does that trader manage risk?\n"
+            "22. How does that trader handle losses?\n"
+            "23. How does that trader approach winning trades?\n"
+            "24. What habits does that trader have?\n"
+            "25. What habits must you stop immediately?\n"
+            "26. What habits must you start building today?\n"
+            "27. How would your future self behave differently from your current self?"
+        )
+        part4_response = st.text_area(
+            "Your Part 4 reflections",
+            key="risk_reflection_part4",
+            height=200
+        )
+
+        st.markdown("### PART 5: COMMITMENT")
+        st.markdown(
+            "28. What are you willing to sacrifice over the next 90 days?\n"
+            "29. What distractions are holding you back?\n"
+            "30. On a scale of 1–10, how committed are you to becoming a disciplined trader?\n"
+            "31. What would make that commitment a 10?\n"
+            "32. What promise are you making to yourself today?"
+        )
+        part5_response = st.text_area(
+            "Your Part 5 reflections",
+            key="risk_reflection_part5",
+            height=200
+        )
+
+        save_reflection = st.form_submit_button("Save Risk Reflection")
+
+    if save_reflection:
+        combined_note = (
+            "PART 1: YOUR WHY\n"
+            f"{part1_response}\n\n"
+            "PART 2: YOUR FINANCIAL VISION\n"
+            f"{part2_response}\n\n"
+            "PART 3: THE POWER OF COMPOUNDING\n"
+            f"{part3_response}\n\n"
+            "PART 4: YOUR FUTURE TRADER IDENTITY\n"
+            f"{part4_response}\n\n"
+            "PART 5: COMMITMENT\n"
+            f"{part5_response}"
+        )
+        try:
+            cursor.execute(
+                "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                (str(datetime.now()), "Risk Reflection", combined_note, get_current_subscription_key())
+            )
+            conn.commit()
+            st.success("Risk reflection saved to your psychology journal.")
+        except Exception as e:
+            st.error(f"Failed to save reflection: {e}")
+
+# ==================================
 # COMPOUNDING TAB
 # ==================================
 with compounding:
@@ -3158,6 +3327,20 @@ with psychology:
 
     st.markdown("### Today's Mood")
     mood = st.radio("How do you feel about your trading today?", moods, horizontal=True)
+    st.markdown("---")
+
+    st.markdown("### Saved Risk Reflections")
+    risk_reflections = [
+        entry for entry in st.session_state.get('psych_journal', [])
+        if entry.get('mood') == 'Risk Reflection'
+    ]
+    if risk_reflections:
+        for entry in risk_reflections:
+            with st.expander(entry['date'], expanded=False):
+                st.write(entry['note'])
+    else:
+        st.info("No saved risk reflections yet. Use the Risk tab to create one.")
+
     st.markdown("---")
     st.markdown("### Quick Reflection Prompts")
     prompts = [

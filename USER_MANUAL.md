@@ -132,6 +132,50 @@ This is where you log new trades and review history.
 - Take Profit
 - Calculated R Multiple
 
+#### Risk Reflection Questionnaire
+
+Use the Risk tab to answer a built-in questionnaire that helps you reflect on your trading motivation, financial vision, compounding strategy, trader identity, and commitment.
+
+- Saved responses are stored in the Psychology tab under Psychology History.
+
+- Part 1: YOUR WHY
+  - Why do you want to learn trading?
+  - What attracted you to trading in the first place?
+  - What would becoming a consistently profitable trader mean for your life?
+  - What problems would trading solve for you?
+  - Who would benefit if you became successful?
+  - What happens if nothing changes over the next 5 years?
+  - Why is now the right time to commit to this journey?
+- Part 2: YOUR FINANCIAL VISION
+  - What is your current trading account size?
+  - What account size would make you feel proud of your progress 12 months from now?
+  - What account size would completely change your life?
+  - If you could consistently earn 3% per week, what would that mean to you?
+  - How much monthly income would make a meaningful difference in your life?
+  - What would you do with your first profitable month?
+  - What would you do with your first funded payout?
+  - What would financial freedom look like for you personally?
+- Part 3: THE POWER OF COMPOUNDING
+  - Where could your account be in 1 year?
+  - Where could your account be in 3 years?
+  - How would your life change if you focused on consistency instead of quick profits?
+  - What becomes possible when you stop gambling and start compounding?
+- Part 4: YOUR FUTURE TRADER IDENTITY
+  - Describe the trader you want to become.
+  - How does that trader manage risk?
+  - How does that trader handle losses?
+  - How does that trader approach winning trades?
+  - What habits does that trader have?
+  - What habits must you stop immediately?
+  - What habits must you start building today?
+  - How would your future self behave differently from your current self?
+- Part 5: COMMITMENT
+  - What are you willing to sacrifice over the next 90 days?
+  - What distractions are holding you back?
+  - On a scale of 1–10, how committed are you to becoming a disciplined trader?
+  - What would make that commitment a 10?
+  - What promise are you making to yourself today?
+
 #### Session Tracking
 
 - Trading Session: Asian, London, London Open, New York, New York Open
