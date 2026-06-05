@@ -3074,121 +3074,120 @@ Session: {session}
                 use_container_width=True
             )
     
+RISK_QUESTIONS = [
+    "Why do you want to learn trading?",
+    "What attracted you to trading in the first place?",
+    "What would becoming a consistently profitable trader mean for your life?",
+    "What problems would trading solve for you?",
+    "Who would benefit if you became successful?",
+    "What happens if nothing changes over the next 5 years?",
+    "Why is now the right time to commit to this journey?",
+    "What is your current trading account size?",
+    "What account size would make you feel proud of your progress 12 months from now?",
+    "What account size would completely change your life?",
+    "If you could consistently earn 3% per week, what would that mean to you?",
+    "How much monthly income would make a meaningful difference in your life?",
+    "What would you do with your first profitable month?",
+    "What would you do with your first funded payout?",
+    "What would financial freedom look like for you personally?",
+    "Where could your account be in 1 year?",
+    "Where could your account be in 3 years?",
+    "How would your life change if you focused on consistency instead of quick profits?",
+    "What becomes possible when you stop gambling and start compounding?",
+    "Describe the trader you want to become.",
+    "How does that trader manage risk?",
+    "How does that trader handle losses?",
+    "How does that trader approach winning trades?",
+    "What habits does that trader have?",
+    "What habits must you stop immediately?",
+    "What habits must you start building today?",
+    "How would your future self behave differently from your current self?",
+    "What are you willing to sacrifice over the next 90 days?",
+    "What distractions are holding you back?",
+    "On a scale of 1–10, how committed are you to becoming a disciplined trader?",
+    "What would make that commitment a 10?",
+    "What promise are you making to yourself today?"
+]
+
+
+def load_latest_risk_answers(subscription_key):
+    if not subscription_key:
+        return {}
+    try:
+        cursor.execute(
+            "SELECT note FROM psych_journal WHERE subscription_key=? AND mood=? ORDER BY id DESC LIMIT 1",
+            (subscription_key, "Risk Reflection")
+        )
+        row = cursor.fetchone()
+        if not row:
+            return {}
+        note = row[0] or ""
+        try:
+            answers = json.loads(note)
+            if isinstance(answers, dict):
+                return answers
+        except Exception:
+            return {}
+    except Exception:
+        return {}
+    return {}
+
+
 # ==================================
 # RISK TAB
 # ==================================
 with risk_tab:
     st.markdown("## 🛡 Risk Reflection Questionnaire")
     st.markdown(
-        "Use this section to answer focused risk and mindset questions that support consistent trading discipline."
-    )
-    st.info(
-        "Your saved risk reflections are stored in the Psychology tab under Psychology History."
+        "Use this section to answer one question at a time. Once a question has been answered and saved, it becomes read-only."
     )
     st.markdown("---")
 
+    subscription_key = get_current_subscription_key()
+    saved_answers = load_latest_risk_answers(subscription_key)
+    answered_count = len([v for v in saved_answers.values() if str(v).strip()])
+    st.info(f"{answered_count}/{len(RISK_QUESTIONS)} questions answered. Saved answers are read-only.")
+
     with st.form("risk_reflection_form"):
-        st.markdown("### PART 1: YOUR WHY")
-        st.markdown(
-            "1. Why do you want to learn trading?\n"
-            "2. What attracted you to trading in the first place?\n"
-            "3. What would becoming a consistently profitable trader mean for your life?\n"
-            "4. What problems would trading solve for you?\n"
-            "5. Who would benefit if you became successful?\n"
-            "6. What happens if nothing changes over the next 5 years?\n"
-            "7. Why is now the right time to commit to this journey?"
-        )
-        part1_response = st.text_area(
-            "Your Part 1 reflections",
-            key="risk_reflection_part1",
-            height=200
-        )
-
-        st.markdown("### PART 2: YOUR FINANCIAL VISION")
-        st.markdown(
-            "8. What is your current trading account size?\n"
-            "9. What account size would make you feel proud of your progress 12 months from now?\n"
-            "10. What account size would completely change your life?\n"
-            "11. If you could consistently earn 3% per week, what would that mean to you?\n"
-            "12. How much monthly income would make a meaningful difference in your life?\n"
-            "13. What would you do with your first profitable month?\n"
-            "14. What would you do with your first funded payout?\n"
-            "15. What would financial freedom look like for you personally?"
-        )
-        part2_response = st.text_area(
-            "Your Part 2 reflections",
-            key="risk_reflection_part2",
-            height=200
-        )
-
-        st.markdown("### PART 3: THE POWER OF COMPOUNDING")
-        st.markdown(
-            "16. Where could your account be in 1 year?\n"
-            "17. Where could your account be in 3 years?\n"
-            "18. How would your life change if you focused on consistency instead of quick profits?\n"
-            "19. What becomes possible when you stop gambling and start compounding?"
-        )
-        part3_response = st.text_area(
-            "Your Part 3 reflections",
-            key="risk_reflection_part3",
-            height=200
-        )
-
-        st.markdown("### PART 4: YOUR FUTURE TRADER IDENTITY")
-        st.markdown(
-            "20. Describe the trader you want to become.\n"
-            "21. How does that trader manage risk?\n"
-            "22. How does that trader handle losses?\n"
-            "23. How does that trader approach winning trades?\n"
-            "24. What habits does that trader have?\n"
-            "25. What habits must you stop immediately?\n"
-            "26. What habits must you start building today?\n"
-            "27. How would your future self behave differently from your current self?"
-        )
-        part4_response = st.text_area(
-            "Your Part 4 reflections",
-            key="risk_reflection_part4",
-            height=200
-        )
-
-        st.markdown("### PART 5: COMMITMENT")
-        st.markdown(
-            "28. What are you willing to sacrifice over the next 90 days?\n"
-            "29. What distractions are holding you back?\n"
-            "30. On a scale of 1–10, how committed are you to becoming a disciplined trader?\n"
-            "31. What would make that commitment a 10?\n"
-            "32. What promise are you making to yourself today?"
-        )
-        part5_response = st.text_area(
-            "Your Part 5 reflections",
-            key="risk_reflection_part5",
-            height=200
-        )
+        for idx, question in enumerate(RISK_QUESTIONS, start=1):
+            answer_key = f"risk_question_{idx}"
+            existing_answer = saved_answers.get(str(idx), "")
+            st.text_area(
+                f"{idx}. {question}",
+                value=existing_answer,
+                key=answer_key,
+                disabled=bool(existing_answer),
+                height=140
+            )
 
         save_reflection = st.form_submit_button("Save Risk Reflection")
 
     if save_reflection:
-        combined_note = (
-            "PART 1: YOUR WHY\n"
-            f"{part1_response}\n\n"
-            "PART 2: YOUR FINANCIAL VISION\n"
-            f"{part2_response}\n\n"
-            "PART 3: THE POWER OF COMPOUNDING\n"
-            f"{part3_response}\n\n"
-            "PART 4: YOUR FUTURE TRADER IDENTITY\n"
-            f"{part4_response}\n\n"
-            "PART 5: COMMITMENT\n"
-            f"{part5_response}"
-        )
-        try:
-            cursor.execute(
-                "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
-                (str(datetime.now()), "Risk Reflection", combined_note, get_current_subscription_key())
-            )
-            conn.commit()
-            st.success("Risk reflection saved to your psychology journal.")
-        except Exception as e:
-            st.error(f"Failed to save reflection: {e}")
+        merged_answers = saved_answers.copy()
+        for idx in range(1, len(RISK_QUESTIONS) + 1):
+            answer_key = f"risk_question_{idx}"
+            current_answer = str(st.session_state.get(answer_key, "")).strip()
+            if current_answer:
+                merged_answers[str(idx)] = current_answer
+
+        if not merged_answers:
+            st.warning("Answer at least one question before saving.")
+        else:
+            try:
+                cursor.execute(
+                    "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                    (
+                        str(datetime.now()),
+                        "Risk Reflection",
+                        json.dumps(merged_answers, ensure_ascii=False),
+                        subscription_key
+                    )
+                )
+                conn.commit()
+                st.success("Risk reflection saved to your psychology journal.")
+                st.experimental_rerun()
+            except Exception as e:
+                st.error(f"Failed to save reflection: {e}")
 
 # ==================================
 # COMPOUNDING TAB
@@ -3284,7 +3283,21 @@ with psychology:
     if risk_reflections:
         for entry in risk_reflections:
             with st.expander(entry['date'], expanded=False):
-                st.write(entry['note'])
+                if entry.get('note'):
+                    try:
+                        parsed = json.loads(entry['note'])
+                        if isinstance(parsed, dict):
+                            for idx, question in enumerate(RISK_QUESTIONS, start=1):
+                                answer = parsed.get(str(idx), "").strip()
+                                st.markdown(f"**{idx}. {question}**")
+                                st.write(answer if answer else "_No answer provided yet_")
+                                st.markdown("---")
+                        else:
+                            st.write(entry['note'])
+                    except Exception:
+                        st.write(entry['note'])
+                else:
+                    st.write("_No content available._")
     else:
         st.info("No saved risk reflections yet. Use the Risk tab to create one.")
 
