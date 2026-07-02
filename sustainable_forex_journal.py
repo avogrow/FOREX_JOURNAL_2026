@@ -10,6 +10,7 @@ import io
 import os
 import glob
 import json
+import re
 import smtplib
 import hashlib
 import hmac
@@ -39,6 +40,26 @@ def color_for_value(value):
     if value < 0:
         return "red"
     return "black"
+
+
+def safe_float(value, default=np.nan):
+    try:
+        if value is None:
+            return default
+        if isinstance(value, str) and not value.strip():
+            return default
+        return float(value)
+    except Exception:
+        return default
+
+
+def get_first_nonempty(row, *keys):
+    for key in keys:
+        if key in row.index:
+            value = row.get(key)
+            if value is not None and not (isinstance(value, str) and not value.strip()):
+                return value
+    return None
 
 
 def render_currency_metric(col, label, value):
@@ -83,34 +104,6 @@ st.markdown(
     "Use the tabs to navigate between Dashboard, Journal, Analytics, Risk, Compounding, Goals, Psychology, and Admin tools."
 )
 st.markdown("---")
-
-TERMS_AND_CONDITIONS = '''
-Forex Tracker Pro is a personal trading journal and performance tracking tool. By using this app to save trade details, you agree to the following terms:
-
-1. Personal Use Only
-   - This app is designed for your personal trade journaling, analysis, and record-keeping.
-   - It does not provide financial advice, investment recommendations, or trading signals.
-   - You are solely responsible for all trading decisions and outcomes.
-
-2. No Guarantee of Accuracy
-   - Data entered into the app is user-provided. The app may display calculated metrics based on your input, but it does not verify accuracy.
-   - Screenshots uploaded are stored locally in the screenshots folder and are not reviewed or validated by the app.
-
-3. Liability and Risk
-   - The app owner and developers are not liable for any losses, damages, or claims resulting from your use of this app.
-   - Past results, performance dashboards, and simulated metrics are not guarantees of future performance.
-
-4. Privacy and Data Storage
-   - Your trade logs and uploads are stored locally or in the configured database.
-   - You are responsible for protecting any personally identifiable information or sensitive data you provide.
-
-5. Subscription and Access
-   - Access to the app may require a valid subscription key.
-   - Any admin or email notification features are provided as convenience tools and are subject to your local configuration.
-
-6. Acceptance
-   - By checking the acceptance box and saving a trade, you confirm that you have read, understood, and agreed to these Terms and Conditions.
-'''
 
 os.makedirs("screenshots", exist_ok=True)
 
@@ -191,7 +184,8 @@ def _get_admin_otp_history():
     parsed = []
     for entry in raw_history:
         try:
-            parsed.append(datetime.fromisoformat(entry))
+            if entry:
+                parsed.append(datetime.fromisoformat(entry))
         except Exception:
             pass
     return parsed
@@ -219,7 +213,8 @@ def can_attempt_admin_otp_verify():
     attempts = []
     for entry in raw_history:
         try:
-            attempts.append(datetime.fromisoformat(entry))
+            if entry:
+                attempts.append(datetime.fromisoformat(entry))
         except Exception:
             pass
 
@@ -850,107 +845,11 @@ def render_enrollment_page():
 
 
 def require_terms_agreement():
-    if st.session_state.get("terms_accepted", False):
-        return
-
-    st.markdown("# Terms and Agreement")
-    st.markdown(TERMS_AND_CONDITIONS)
-    terms_checkbox = st.checkbox(
-        "I have read and agree to the Terms and Conditions",
-        value=False,
-        key="terms_agreement_prompt"
-    )
-
-    if terms_checkbox:
-        st.session_state["terms_accepted"] = True
-        st.success("Thank you. You may now continue using the app.")
-        if hasattr(st, "rerun"):
-            st.rerun()
-        elif hasattr(st, "experimental_rerun"):
-            st.experimental_rerun()
-        else:
-            st.stop()
-
-    st.warning("You must accept the Terms and Conditions before logging in or using the app.")
-    st.stop()
+    return
 
 
 def show_subscription_gate():
-
-    current_key = get_current_subscription_key()
-    valid = is_subscription_key_valid(current_key)
-
-    if valid:
-        if not st.session_state.get("terms_accepted", False):
-            require_terms_agreement()
-        return
-
-    st.sidebar.header("Unlock access")
-    st.sidebar.write("Enter your license key below or choose a payment option on the main page.")
-
-    subscription_key = st.sidebar.text_input(
-        "License key",
-        value=current_key,
-        type="password",
-        key="subscription_key_input"
-    )
-
-    if st.sidebar.button("Unlock app"):
-        if is_subscription_key_valid(subscription_key):
-            st.session_state["subscription_key"] = subscription_key
-            st.rerun()
-        else:
-            st.sidebar.error("Invalid license key.")
-
-    render_enrollment_page()
-
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("New here? Request support")
-    with st.sidebar.form("new_user_registration_form"):
-        reg_name = st.text_input("Full name")
-        reg_email = st.text_input("Email")
-        reg_plan = st.selectbox("Desired plan", ["monthly", "annual", "lifetime", "custom"], index=2)
-        reg_notes = st.text_area("Tell us why you want access")
-        reg_submit = st.form_submit_button("Request registration")
-
-    if reg_submit:
-        if not reg_name or not reg_email:
-            st.sidebar.error("Please provide both name and email.")
-        else:
-            provider_link = get_subscription_payment_link()
-            pending_data = {
-                "time": datetime.now().isoformat(),
-                "name": reg_name,
-                "email": reg_email,
-                "plan": reg_plan,
-                "notes": reg_notes,
-                "checkout_url": provider_link or ""
-            }
-            save_registration_request(pending_data)
-
-            tpl = load_email_templates().get("registration_request", {})
-            subject = tpl.get("subject", "New registration request: {name}").format(name=reg_name)
-            body = tpl.get(
-                "body",
-                "A new registration request was submitted by {name} ({email}) for plan {plan}. Notes: {notes}"
-            ).format(
-                name=reg_name,
-                email=reg_email,
-                plan=reg_plan,
-                notes=reg_notes or "N/A"
-            )
-
-            email_ok = send_admin_email(subject, body)
-            if email_ok:
-                st.sidebar.success("Request submitted. Admin has been notified.")
-            else:
-                err = get_last_email_error()
-                msg = "Request saved, but email notification is not configured or failed."
-                if err:
-                    msg = f"{msg} Error: {err}"
-                st.sidebar.warning(msg)
-
-    st.stop()
+    return
 
 
 # ==================================
@@ -973,7 +872,6 @@ except Exception:
     pass
 
 show_subscription_gate()
-restore_saved_account_from_key()
 
 # ==================================
 # MAIN TABLE
@@ -1012,8 +910,6 @@ timeframe TEXT,
 
 setup_score INTEGER DEFAULT 0,
 
-tags TEXT,
-
 mistake_type TEXT,
 
 entry_time TEXT,
@@ -1024,9 +920,7 @@ duration REAL DEFAULT 0,
 
 screenshot TEXT,
 
-subscription_key TEXT,
-
-ai_review TEXT
+subscription_key TEXT
 )
 """)
 
@@ -1068,14 +962,12 @@ add_column_if_missing("trades", "r_multiple", "REAL DEFAULT 0")
 add_column_if_missing("trades", "session", "TEXT")
 add_column_if_missing("trades", "timeframe", "TEXT")
 add_column_if_missing("trades", "setup_score", "INTEGER DEFAULT 0")
-add_column_if_missing("trades", "tags", "TEXT")
 add_column_if_missing("trades", "mistake_type", "TEXT")
 add_column_if_missing("trades", "entry_time", "TEXT")
 add_column_if_missing("trades", "exit_time", "TEXT")
 add_column_if_missing("trades", "duration", "REAL DEFAULT 0")
 add_column_if_missing("trades", "screenshot", "TEXT")
 add_column_if_missing("trades", "subscription_key", "TEXT")
-add_column_if_missing("trades", "ai_review", "TEXT")
 add_column_if_missing("subscription_keys", "account_id", "TEXT DEFAULT ''")
 
 # ==================================
@@ -1084,11 +976,17 @@ add_column_if_missing("subscription_keys", "account_id", "TEXT DEFAULT ''")
 def load_trades():
 
     current_key = get_current_subscription_key()
-    df = pd.read_sql(
-        "SELECT * FROM trades WHERE subscription_key = ? ORDER BY date ASC",
-        conn,
-        params=(current_key,)
-    )
+    if current_key:
+        df = pd.read_sql(
+            "SELECT * FROM trades WHERE subscription_key = ? ORDER BY date ASC",
+            conn,
+            params=(current_key,)
+        )
+    else:
+        df = pd.read_sql(
+            "SELECT * FROM trades ORDER BY date ASC",
+            conn
+        )
 
     if len(df):
 
@@ -1103,7 +1001,7 @@ def load_trades():
                 errors="coerce"
             ).fillna(0)
 
-        df["equity"] = df["profit"].cumsum()
+        df["equity"] = 10000 + df["profit"].cumsum()
 
         df["running_max"] = (
             df["equity"]
@@ -1119,9 +1017,9 @@ def load_trades():
 
 
 def count_trades_for_key(key):
-    if not key:
-        return 0
     try:
+        if not key:
+            return cursor.execute("SELECT COUNT(*) FROM trades").fetchone()[0] or 0
         return cursor.execute(
             "SELECT COUNT(*) FROM trades WHERE subscription_key = ?",
             (key,)
@@ -1141,11 +1039,18 @@ def parse_legacy_report_time(value):
     if not text:
         return None
 
+    # Normalize trailing milliseconds and timezone-like suffix
+    text = re.sub(r"\.(\d{1,6})(?:Z|[+-]\d{2}:?\d{2})?$", "", text)
+
     for fmt in (
         "%Y.%m.%d %H:%M:%S",
         "%Y-%m-%d %H:%M:%S",
         "%d.%m.%Y %H:%M:%S",
         "%Y/%m/%d %H:%M:%S",
+        "%d/%m/%Y %H:%M:%S",
+        "%d/%m/%Y %H:%M",
+        "%d.%m.%Y %H:%M",
+        "%Y-%m-%d %H:%M",
     ):
         try:
             return datetime.strptime(text, fmt)
@@ -1168,13 +1073,14 @@ def restore_trades_from_report_history(file_path, subscription_key):
     for sheet_name in xls.sheet_names:
         df_raw = xls.parse(sheet_name, header=None)
 
-        header_row = None
-        for idx, row in df_raw.iterrows():
+        header_row: int | None = None
+        for idx in range(len(df_raw)):
+            row = df_raw.iloc[idx]
             values = [
                 str(v).strip().lower() if not pd.isna(v) else ""
                 for v in row.tolist()
             ]
-            if "position" in values and "symbol" in values and "profit" in values and "commission" in values:
+            if "symbol" in values and ("closing time" in values or "time" in values or "opening" in values) and "net $" in values:
                 header_row = idx
                 break
 
@@ -1186,7 +1092,7 @@ def restore_trades_from_report_history(file_path, subscription_key):
         counts = {}
         for raw_col in raw_header:
             name = str(raw_col).strip() if not pd.isna(raw_col) else ""
-            key = name.lower()
+            key = name.lower().replace(" ", "_")
             if key in counts:
                 counts[key] += 1
                 key = f"{key}.{counts[key]}"
@@ -1194,27 +1100,32 @@ def restore_trades_from_report_history(file_path, subscription_key):
                 counts[key] = 0
             header.append(key)
 
-        data_df = df_raw.iloc[header_row + 1 :].copy()
+        data_df = df_raw.iloc[int(header_row) + 1 :].copy()
         data_df.columns = header
         data_df = data_df.dropna(how="all")
 
         for _, row in data_df.iterrows():
-            symbol = str(row.get("symbol", "")).strip()
-            direction = str(row.get("type", "")).strip().lower()
-            if not symbol or direction not in ("buy", "sell"):
+            symbol = str(get_first_nonempty(row, "symbol", "symbol_", "symbol.1") or "").strip()
+            if not symbol:
                 continue
 
-            profit = pd.to_numeric(row.get("profit"), errors="coerce")
-            entry_price = pd.to_numeric(row.get("price"), errors="coerce")
-            exit_price = pd.to_numeric(row.get("price.1"), errors="coerce") if "price.1" in row.index else None
+            direction = str(get_first_nonempty(row, "type", "opening_di", "opening_direction", "closing_type", "direction") or "").strip().lower()
+            if direction in ("b", "s"):
+                direction = "buy" if direction == "b" else "sell"
+            if direction not in ("buy", "sell"):
+                continue
+
+            profit = safe_float(get_first_nonempty(row, "profit", "net_$", "net", "balance_$"))
+            entry_price = safe_float(get_first_nonempty(row, "price", "entry_price", "entry price", "opening_price", "opening_price"))
+            exit_price = safe_float(get_first_nonempty(row, "price.1", "closing_price", "closing price", "exit_price", "exit price"))
 
             if pd.isna(profit) and pd.isna(exit_price):
                 continue
 
-            open_time = parse_legacy_report_time(row.get("time"))
-            close_time = parse_legacy_report_time(row.get("time.1"))
+            open_time = parse_legacy_report_time(get_first_nonempty(row, "time", "opening_time", "opening time", "closing_time", "closing time"))
+            close_time = parse_legacy_report_time(get_first_nonempty(row, "time.1", "closing_time", "closing time", "close time"))
             if close_time is None:
-                close_time = parse_legacy_report_time(row.get("close time"))
+                close_time = parse_legacy_report_time(get_first_nonempty(row, "close time", "closing_time", "closing time"))
 
             date_value = ""
             if open_time:
@@ -1226,11 +1137,11 @@ def restore_trades_from_report_history(file_path, subscription_key):
             if open_time and close_time:
                 duration = (close_time - open_time).total_seconds() / 60
 
-            commission = pd.to_numeric(row.get("commission"), errors="coerce")
+            commission = safe_float(row.get("commission"))
             if pd.isna(commission):
                 commission = 0.0
 
-            lot = pd.to_numeric(row.get("volume"), errors="coerce")
+            lot = safe_float(row.get("volume"))
             if pd.isna(lot):
                 lot = 0.0
 
@@ -1239,11 +1150,13 @@ def restore_trades_from_report_history(file_path, subscription_key):
                 INSERT INTO trades(
                     date, symbol, direction, entry, exit, lot, profit,
                     commission, setup, notes, risk, r_multiple, session,
-                    timeframe, setup_score, tags, mistake_type,
+                    timeframe, setup_score, mistake_type,
                     entry_time, exit_time, duration, screenshot,
-                    subscription_key, ai_review
+                    subscription_key
                 )
-                VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+                VALUES(
+                    ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                )
                 """,
                 (
                     date_value,
@@ -1262,13 +1175,11 @@ def restore_trades_from_report_history(file_path, subscription_key):
                     "",
                     0,
                     "",
-                    "",
                     open_time.isoformat() if open_time else "",
                     close_time.isoformat() if close_time else "",
                     float(duration),
                     "",
-                    subscription_key,
-                    ""
+                    subscription_key
                 )
             )
             imported += 1
@@ -1280,8 +1191,6 @@ def restore_trades_from_report_history(file_path, subscription_key):
 def rerun_app():
     if hasattr(st, "rerun"):
         st.rerun()
-    elif hasattr(st, "experimental_rerun"):
-        st.experimental_rerun()
 
 
 def offer_legacy_trade_restore():
@@ -1497,13 +1406,7 @@ with st.sidebar:
     account_size = st.number_input("Account Size (USD)", value=float(account_size) if account_size else 10000.0, step=100.0, format="%.2f", key="account_size")
     balance = account_size + metrics['total_profit']
     render_currency_metric(st, "Account Balance", balance)
-
-    saved_account = st.session_state.get("account_id", "")
-    if saved_account:
-        st.markdown(f"**Account:** `{saved_account}`")
-    else:
-        st.markdown("**Account:** _not set_")
-    st.markdown("---")
+    render_currency_metric(st, "0.5% of Balance", balance * 0.005)
     # Average trade duration
     avg_duration = 0
     if "duration" in df.columns and len(df) > 0:
@@ -1519,7 +1422,6 @@ with st.sidebar:
     else:
         dur_str = f"{avg_duration:.0f}m"
     st.metric("Avg Duration", dur_str)
-    st.markdown("Tip: Save the Account ID from the Dashboard tab to lock this report.")
 
 # ==================================
 # TABS
@@ -1537,7 +1439,7 @@ with st.sidebar:
     "📊 Dashboard",
     "📖 Journal",
     "📈 Analytics",
-    "🛡 Risk",
+    "🛡 Risk Archive",
     "💰 Compounding",
     "🎯 Goals",
     "🧠 Psychology",
@@ -1603,226 +1505,8 @@ def calculate_streaks(df):
 
     return max_win, max_loss
 
-# ==================================
-# KPI ENGINE
-# ==================================
-def calc_metrics(df):
-
-    if df.empty:
-
-        return {
-            "total_profit":0,
-            "total_trades":0,
-            "wins":0,
-            "losses":0,
-            "win_rate":0,
-            "avg_win":0,
-            "avg_loss":0,
-            "largest_win":0,
-            "largest_loss":0,
-            "profit_factor":0,
-            "expectancy":0,
-            "avg_r":0,
-            "total_commission":0,
-            "avg_commission":0,
-            "max_dd":0,
-            "recovery_factor":0,
-            "max_win_streak":0,
-            "max_loss_streak":0
-        }
-
-    wins_df = df[df["profit"] > 0]
-    losses_df = df[df["profit"] < 0]
-
-    wins = len(wins_df)
-    losses = len(losses_df)
-
-    total_profit = df["profit"].sum()
-
-    total_trades = len(df)
-
-    win_rate = (
-        wins / total_trades * 100
-    ) if total_trades else 0
-
-    avg_win = (
-        wins_df["profit"].mean()
-    ) if wins else 0
-
-    avg_loss = (
-        losses_df["profit"].mean()
-    ) if losses else 0
-
-    largest_win = (
-        wins_df["profit"].max()
-    ) if wins else 0
-
-    largest_loss = (
-        losses_df["profit"].min()
-    ) if losses else 0
-
-    gross_profit = (
-        wins_df["profit"].sum()
-    )
-
-    gross_loss = abs(
-        losses_df["profit"].sum()
-    )
-
-    profit_factor = (
-        gross_profit / gross_loss
-        if gross_loss
-        else 0
-    )
-
-    expectancy = (
-        (win_rate / 100) * avg_win
-        +
-        ((100 - win_rate) / 100)
-        * avg_loss
-    )
-
-    avg_r = (
-        df["r_multiple"].mean()
-        if "r_multiple" in df.columns
-        else 0
-    )
-
-    total_commission = (
-        df["commission"].sum()
-        if "commission" in df.columns
-        else 0
-    )
-
-    avg_commission = (
-        df["commission"].mean()
-        if "commission" in df.columns and len(df) > 0
-        else 0
-    )
-
-    max_dd = (
-        abs(df["drawdown"].min())
-        if "drawdown" in df.columns
-        else 0
-    )
-
-    recovery_factor = (
-        total_profit / max_dd
-        if max_dd > 0
-        else 0
-    )
-
-    max_win_streak, max_loss_streak = (
-        calculate_streaks(df)
-    )
-
-    return {
-
-        "total_profit": total_profit,
-
-        "total_trades": total_trades,
-
-        "wins": wins,
-
-        "losses": losses,
-
-        "win_rate": win_rate,
-
-        "avg_win": avg_win,
-
-        "avg_loss": avg_loss,
-
-        "largest_win": largest_win,
-
-        "largest_loss": largest_loss,
-
-        "profit_factor": profit_factor,
-
-        "expectancy": expectancy,
-
-        "avg_r": avg_r,
-
-        "total_commission": total_commission,
-
-        "avg_commission": avg_commission,
-
-        "max_dd": max_dd,
-
-        "recovery_factor": recovery_factor,
-
-        "max_win_streak": max_win_streak,
-
-        "max_loss_streak": max_loss_streak
-    }
 
 # ==================================
-# AI REVIEW ENGINE
-# ==================================
-def generate_ai_review(
-        profit,
-        setup_score,
-        mistakes,
-        session,
-        notes
-):
-
-    review = []
-
-    if setup_score >= 6:
-        review.append(
-            "Excellent A+ setup quality."
-        )
-
-    elif setup_score >= 5:
-        review.append(
-            "Strong setup conditions."
-        )
-
-    elif setup_score >= 4:
-        review.append(
-            "Acceptable setup but not elite."
-        )
-
-    else:
-        review.append(
-            "Low-quality setup."
-        )
-
-    if profit > 0:
-
-        review.append(
-            "Execution produced profit."
-        )
-
-    else:
-
-        review.append(
-            "Review execution and management."
-        )
-
-    if mistakes:
-
-        review.append(
-            f"Mistakes detected: {mistakes}"
-        )
-
-    if session:
-
-        review.append(
-            f"Executed during {session} session."
-        )
-
-    if notes:
-
-        review.append(
-            "Review notes for recurring patterns."
-        )
-
-    review.append(
-        "Focus on process over outcome."
-    )
-
-    return " ".join(review)
 
 # ==================================
 # SAVE SCREENSHOT
@@ -1839,37 +1523,6 @@ metrics = calc_metrics(df)
 with dashboard:
 
     st.subheader("📈 Sustainable Style Performance Dashboard")
-
-    if "account_id_saved" not in st.session_state:
-        st.session_state["account_id_saved"] = False
-
-    saved_account = st.session_state.get("account_id", "")
-    account_id = st.text_input(
-        "Account ID",
-        value=saved_account,
-        key="dashboard_account_id",
-        disabled=st.session_state.get("account_id_saved", False)
-    )
-
-    if not st.session_state.get("account_id_saved", False):
-        if account_id:
-            if st.button("Save Account", key="save_dashboard_account"):
-                current_key = get_current_subscription_key()
-                st.session_state["account_id"] = account_id.strip()
-                st.session_state["account_id_saved"] = True
-                if current_key:
-                    save_subscription_account_id(current_key, account_id.strip())
-                if hasattr(st, "rerun"):
-                    st.rerun()
-                elif hasattr(st, "experimental_rerun"):
-                    st.experimental_rerun()
-                else:
-                    st.success("Account ID saved. Refresh the page to continue.")
-        else:
-            st.info("Enter an Account ID to represent this dashboard.")
-    else:
-        st.markdown(f"**Current Account:** `{saved_account}`")
-        st.caption("This Account ID has been saved and is now read-only.")
 
     # ==========================
     # KPI ROW 1
@@ -1959,37 +1612,87 @@ with dashboard:
     if not df.empty:
 
         # ======================
-        # EQUITY CURVE
+        # EQUITY SUMMARY
         # ======================
-        st.subheader("📈 Equity Curve")
+        starting_capital = 10000
+        equity_value = starting_capital + metrics['total_profit']
 
-        fig = px.line(
-            df,
-            x=df.index,
-            y="equity",
-            markers=True
+        st.subheader("📌 Equity Summary")
+        c1, c2, c3 = st.columns(3)
+
+        render_currency_metric(
+            c1,
+            "Starting Capital",
+            starting_capital
         )
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True
+        render_currency_metric(
+            c2,
+            "Current Equity",
+            equity_value
         )
 
-        # ======================
-        # DRAWDOWN CURVE
-        # ======================
-        st.subheader("📉 Drawdown Curve")
-
-        fig = px.area(
-            df,
-            x=df.index,
-            y="drawdown"
+        render_currency_metric(
+            c3,
+            "Max Drawdown",
+            metrics['max_dd']
         )
 
-        st.plotly_chart(
-            fig,
-            use_container_width=True
+        st.markdown(
+            "_Full equity and drawdown charts are available in the Analytics tab._"
         )
+
+# ==================================
+# ANALYTICS
+# ==================================
+with analytics:
+
+    st.subheader("📊 Advanced Analytics")
+
+    if df.empty:
+
+        st.info(
+            "No trades available."
+        )
+
+    else:
+
+        if not df.empty:
+
+            # ======================
+            # EQUITY CURVE
+            # ======================
+            st.subheader("📈 Equity Curve")
+
+            fig = px.line(
+                df,
+                x=df.index,
+                y="equity",
+                markers=True
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+            # ======================
+            # DRAWDOWN CURVE
+            # ======================
+            st.subheader("📉 Drawdown Curve")
+
+            fig = px.area(
+                df,
+                x=df.index,
+                y="drawdown"
+            )
+
+            st.plotly_chart(
+                fig,
+                use_container_width=True
+            )
+
+            st.divider()
 
         # ======================
         # MONTHLY PROFITS
@@ -2027,20 +1730,7 @@ with dashboard:
             use_container_width=True
         )
 
-# ==================================
-# ANALYTICS
-# ==================================
-with analytics:
-
-    st.subheader("📊 Advanced Analytics")
-
-    if df.empty:
-
-        st.info(
-            "No trades available."
-        )
-
-    else:
+        st.divider()
 
         # ==========================
         # SYMBOL PERFORMANCE
@@ -2188,71 +1878,6 @@ with analytics:
                 fig,
                 use_container_width=True
             )
-
-        st.divider()
-
-        # ==========================
-        # MISTAKE ANALYSIS
-        # ==========================
-        st.subheader(
-            "🚨 Mistake Analysis"
-        )
-
-        if (
-            "mistake_type"
-            in df.columns
-        ):
-
-            mistakes = (
-                df["mistake_type"]
-                .fillna("")
-                .str.split(",")
-                .explode()
-            )
-
-            mistakes = (
-                mistakes[
-                    mistakes != ""
-                ]
-                .value_counts()
-            )
-
-            if len(mistakes):
-
-                st.bar_chart(
-                    mistakes
-                )
-
-        st.divider()
-
-        # ==========================
-        # TAG ANALYSIS
-        # ==========================
-        st.subheader(
-            "🏷️ Tag Performance"
-        )
-
-        if "tags" in df.columns:
-
-            tag_data = (
-                df["tags"]
-                .fillna("")
-                .str.split(",")
-                .explode()
-            )
-
-            tag_data = (
-                tag_data[
-                    tag_data != ""
-                ]
-                .value_counts()
-            )
-
-            if len(tag_data):
-
-                st.bar_chart(
-                    tag_data
-                )
 
         st.divider()
 
@@ -2442,12 +2067,17 @@ with journal:
         col1,col2,col3 = st.columns(3)
 
         with col1:
+            account_balance = st.session_state.get("account_size", None)
+            account_balance_value = float(account_balance) if account_balance else 10000.0
+            default_risk = account_balance_value * 0.0025
 
             risk = st.number_input(
                 "Risk Amount ($)",
-                value=100.0,
+                value=default_risk,
                 key="risk"
             )
+
+            st.caption("0.25% of account size")
 
         with col2:
 
@@ -2581,17 +2211,12 @@ with journal:
         setup = st.selectbox(
             "Setup",
             [
-                "Order Block",
-                "Breaker Block",
+                "Fibonacchi",
                 "FVG",
-                "iFVG",
                 "CHoCH",
-                "BOS",
-                "SMT",
-                "Liquidity Sweep",
-                "CISD",
                 "CRT",
                 "20 EMA",
+                "News Trading",
                 "No Strategy"
             ],
             key="setup"
@@ -2621,6 +2246,11 @@ with journal:
                 key="equal_high"
             )
 
+            higher_high = st.checkbox(
+                "Higher High",
+                key="higher_high"
+            )
+
         with c2:
 
             fvg_present = st.checkbox(
@@ -2636,6 +2266,11 @@ with journal:
             ifvg_present = st.checkbox(
                 "iFVG Present",
                 key="ifvg_present"
+            )
+
+            lower_low = st.checkbox(
+                "Lower Low",
+                key="lower_low"
             )
 
         with c3:
@@ -2655,6 +2290,16 @@ with journal:
                 key="equal_low"
             )
 
+            lower_high = st.checkbox(
+                "Lower High",
+                key="lower_high"
+            )
+
+            higher_low = st.checkbox(
+                "Higher Low",
+                key="higher_low"
+            )
+
             v_shape = st.checkbox(
                 "V-Shape (Momentum)",
                 key="v_shape"
@@ -2665,18 +2310,28 @@ with journal:
                 key="delivery_from_fvg"
             )
 
+            silver_bullet = st.checkbox(
+                "Silver Bullet",
+                key="silver_bullet"
+            )
+
         setup_score = min(sum([
             liquidity_sweep,
             htf_bias,
             equal_high,
+            higher_high,
             fvg_present,
             cisd_present,
             ifvg_present,
+            lower_low,
             session_valid,
             displacement,
             equal_low,
+            lower_high,
+            higher_low,
             v_shape,
-            delivery_from_fvg
+            delivery_from_fvg,
+            silver_bullet
         ]), 6)
 
         if setup_score == 6:
@@ -2706,199 +2361,78 @@ with journal:
         screenshot_path = ""
         notes = ""
 
-        with st.expander("🧠 Optional review + tags", expanded=False):
-            st.markdown("### Trade Tags")
-            tags = st.multiselect(
-                "Tags",
-                [
-                    "Liquidity Sweep",
-                    "FVG",
-                    "iFVG",
-                    "Order Block",
-                    "Breaker",
-                    "SMT",
-                    "CISD",
-                    "CRT",
-                    "20 EMA",
-                    "News",
-                    "London Open",
-                    "New York Open",
-                    "Continuation",
-                    "Reversal",
-                    "Scalp",
-                    "Intraday",
-                    "Swing"
-                ],
-                key="tags"
-            )
-
-            st.markdown("### Mistake Tracking")
-            mistakes = st.multiselect(
-                "Mistakes Made",
-                [
-                    "FOMO",
-                    "Overtrading",
-                    "Moved Stop Loss",
-                    "Moved Take Profit",
-                    "Revenge Trading",
-                    "Ignored HTF Bias",
-                    "Early Exit",
-                    "Late Entry",
-                    "No Confirmation",
-                    "Risked Too Much"
-                ],
-                key="mistakes"
-            )
-
-            st.markdown("### Screenshot Upload")
-            uploaded_screenshot = st.file_uploader(
-                "Upload a PNG, JPG, or JPEG screenshot of the trade.",
-                type=["png", "jpg", "jpeg"],
-                key="uploaded_screenshot"
-            )
-
-            if uploaded_screenshot is not None:
-                screenshot_filename = (
-                    f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_"
-                    f"{secrets.token_hex(4)}_{uploaded_screenshot.name}"
-                )
-                screenshot_path = os.path.join("screenshots", screenshot_filename)
-                try:
-                    with open(screenshot_path, "wb") as file:
-                        file.write(uploaded_screenshot.getbuffer())
-                    st.image(screenshot_path, caption="Uploaded screenshot", use_column_width=True)
-                except Exception as exc:
-                    st.error(f"Unable to save screenshot: {exc}")
-                    screenshot_path = ""
-
-            st.markdown("### Trade Notes")
-            notes = st.text_area(
-                "Journal Notes",
-                key="journal_notes"
-            )
-
         st.markdown("---")
 
-        # ==========================
-        # AI REVIEW
-        # ==========================
-        ai_review = generate_ai_review(
-            net_profit,
-            setup_score,
-            ",".join(mistakes),
-            session,
-            notes
-        )
-
-        st.info(ai_review)
-
-        # ==========================
-        # SAVE
-        # ==========================
-        with st.expander("📄 Terms and Conditions", expanded=False):
-            st.markdown(TERMS_AND_CONDITIONS)
-
-        tc_agreed = st.checkbox(
-            "I have read and agree to the Terms and Conditions",
-            value=False,
-            key="accept_terms"
-        )
+        mistakes = st.session_state.get('mistakes', [])
 
         submitted = st.form_submit_button(
             "💾 Save Trade"
         )
 
         if submitted:
-            if not tc_agreed:
-                st.warning(
-                    "You must agree to the Terms and Conditions before saving a trade."
-                )
-            else:
                 cursor.execute(
-                """
-                INSERT INTO trades(
-                    date,
-                    symbol,
-                    direction,
-                    entry,
-                    exit,
-                    lot,
-                    profit,
-                    commission,
-                    setup,
-                    notes,
-                    risk,
-                    r_multiple,
-                    session,
-                    timeframe,
-                    setup_score,
-                    tags,
-                    mistake_type,
-                    entry_time,
-                    exit_time,
-                    duration,
-                    screenshot,
-                    subscription_key,
-                    ai_review
+                    """
+                    INSERT INTO trades(
+                        date,
+                        symbol,
+                        direction,
+                        entry,
+                        exit,
+                        lot,
+                        profit,
+                        commission,
+                        setup,
+                        notes,
+                        risk,
+                        r_multiple,
+                        session,
+                        timeframe,
+                        setup_score,
+                        mistake_type,
+                        entry_time,
+                        exit_time,
+                        duration,
+                        screenshot,
+                        subscription_key
+                    )
+
+                    VALUES(
+                        ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+                    )
+                    """,
+                    (
+                        str(trade_date),
+                        symbol,
+                        direction,
+                        entry,
+                        exit_price,
+                        lot,
+                        net_profit,
+                        commission,
+                        setup,
+                        notes,
+                        risk,
+                        r_multiple,
+                        session,
+                        timeframe,
+                        setup_score,
+                        ",".join(mistakes),
+                        str(entry_time),
+                        str(exit_time),
+                        duration,
+                        screenshot_path,
+                        get_current_subscription_key()
+                    )
                 )
 
-                VALUES(
-                    ?,?,?,?,?,?,
-                    ?,?,?,?,?,?,
-                    ?,?,?,?,?,?,
-                    ?,?,?,?,?
-                )
-                """,
-                (
-                    str(trade_date),
-                    symbol,
-                    direction,
-                    entry,
-                    exit_price,
-                    lot,
-                    net_profit,
-                    commission,
-                    setup,
-                    notes,
-                    risk,
-                    r_multiple,
-                    session,
-                    timeframe,
-                    setup_score,
-                    ",".join(tags),
-                    ",".join(mistakes),
-                    str(entry_time),
-                    str(exit_time),
-                    duration,
-                    screenshot_path,
-                    get_current_subscription_key(),
-                    ai_review
-                )
-            )
+                conn.commit()
 
-            conn.commit()
-
-            st.success(
-                "Trade Saved Successfully ✅"
-            )
-            
-            # Rerun to reset the form
-            st.rerun()
-            
-            # Add CSV download option
-            if not df.empty:
-                csv_data = df.to_csv(index=False)
-                st.download_button(
-                    label="📥 Download Trades as CSV",
-                    data=csv_data,
-                    file_name="trades_export.csv",
-                    mime="text/csv"
+                st.success(
+                    "Trade Saved Successfully ✅"
                 )
-            
-            st.rerun()
 
-            send_telegram(
-                f"""
+                send_telegram(
+                    f"""
 New Trade Logged
 
 {symbol}
@@ -2909,8 +2443,11 @@ R Multiple: {r_multiple:.2f}
 
 Setup Grade: {grade}
 Session: {session}
-                """
-            )
+                    """
+                )
+
+                if hasattr(st, "rerun"):
+                    st.rerun()
 
     st.divider()
 
@@ -2924,7 +2461,7 @@ Session: {session}
     current_key = get_current_subscription_key()
 
     st.subheader("📥 Bulk import trades (CSV / Excel)")
-    st.caption("Upload a ReportHistory Excel file or a CSV export. Imported rows will be assigned to your active subscription key.")
+    st.caption("Upload a ReportHistory Excel file or a CSV export. Imported rows will be assigned to your active subscription key if one is set.")
 
     uploaded_file = st.file_uploader("Upload CSV or Excel file", type=["csv", "xls", "xlsx"], key="bulk_import_file")
 
@@ -2948,48 +2485,49 @@ Session: {session}
             st.write("### Uploaded file preview")
             st.dataframe(preview_df.head(10))
 
-        if not current_key:
-            st.warning("Set or enter your subscription key before importing.")
-        else:
+        if current_key:
             st.info(f"Ready to import into subscription key: {current_key}")
-            if st.button("Import uploaded file"):
-                import tempfile
-                try:
-                    suffix = os.path.splitext(uploaded_file.name)[1] or ".xlsx"
-                    with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
-                        tmp.write(uploaded_file.getvalue())
-                        tmp_path = tmp.name
+        else:
+            st.info("Ready to import without a subscription key. Imported rows will be stored with a blank key.")
 
-                    imported = 0
-                    if suffix.lower() in (".xls", ".xlsx"):
-                        imported = restore_trades_from_report_history(tmp_path, current_key)
-                    else:
-                        # For CSV, attempt to parse as a simple table and reuse the excel restore by converting
-                        # to a temporary Excel file for compatibility with existing parser
-                        try:
-                            df_csv = pd.read_csv(tmp_path)
-                            excel_tmp = tmp_path + ".xlsx"
-                            df_csv.to_excel(excel_tmp, index=False)
-                            imported = restore_trades_from_report_history(excel_tmp, current_key)
-                            try:
-                                os.remove(excel_tmp)
-                            except Exception:
-                                pass
-                        except Exception:
-                            imported = 0
+        if st.button("Import uploaded file"):
+            import tempfile
+            try:
+                suffix = os.path.splitext(uploaded_file.name)[1] or ".xlsx"
+                with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
+                    tmp.write(uploaded_file.getvalue())
+                    tmp_path = tmp.name
 
+                imported = 0
+                if suffix.lower() in (".xls", ".xlsx"):
+                    imported = restore_trades_from_report_history(tmp_path, current_key)
+                else:
+                    # For CSV, attempt to parse as a simple table and reuse the excel restore by converting
+                    # to a temporary Excel file for compatibility with existing parser
                     try:
-                        os.remove(tmp_path)
+                        df_csv = pd.read_csv(tmp_path)
+                        excel_tmp = tmp_path + ".xlsx"
+                        df_csv.to_excel(excel_tmp, index=False)
+                        imported = restore_trades_from_report_history(excel_tmp, current_key)
+                        try:
+                            os.remove(excel_tmp)
+                        except Exception:
+                            pass
                     except Exception:
-                        pass
+                        imported = 0
 
-                    if imported:
-                        st.success(f"Imported {imported} legacy trade(s).")
-                        rerun_app()
-                    else:
-                        st.error("No trades were imported. The file may not contain compatible trade rows.")
-                except Exception as e:
-                    st.error(f"Import failed: {e}")
+                try:
+                    os.remove(tmp_path)
+                except Exception:
+                    pass
+
+                if imported:
+                    st.success(f"Imported {imported} legacy trade(s).")
+                    rerun_app()
+                else:
+                    st.error("No trades were imported. The file may not contain compatible trade rows.")
+            except Exception as e:
+                st.error(f"Import failed: {e}")
 
     if not df.empty:
 
@@ -3043,10 +2581,6 @@ Session: {session}
                         use_container_width=True
                     )
 
-        st.info(
-            trade["ai_review"]
-        )
-
         st.divider()
 
         st.subheader("📚 Trade History")
@@ -3074,50 +2608,19 @@ Session: {session}
                 use_container_width=True
             )
     
-RISK_QUESTIONS = [
-    "Why do you want to trade?",
-    "What first attracted you to trading?",
-    "What would consistent profit change in your life?",
-    "What problems would trading solve?",
-    "Who benefits if you succeed?",
-    "What if nothing changes in 5 years?",
-    "Why is now the time to commit?",
-    "What is your current account size?",
-    "What size would make you proud in 12 months?",
-    "What size would change your life?",
-    "If you earned 3% weekly, what would it mean?",
-    "What monthly income would make a difference?",
-    "What would you do with your first profitable month?",
-    "What would you do with your first payout?",
-    "What does financial freedom look like to you?",
-    "Where could your account be in 1 year?",
-    "Where could your account be in 3 years?",
-    "How would life change if you chose consistency over speed?",
-    "What becomes possible by compounding instead of gambling?",
-    "Describe the trader you want to become.",
-    "How does that trader manage risk?",
-    "How does that trader handle losses?",
-    "How does that trader approach wins?",
-    "What habits does that trader have?",
-    "What habits must you stop now?",
-    "What habits should you start today?",
-    "How will your future self behave differently?",
-    "What are you willing to sacrifice in 90 days?",
-    "What distractions hold you back?",
-    "How committed are you to becoming disciplined? (1-10)",
-    "What would make your commitment a 10?",
-    "What promise are you making to yourself today?"
-]
-
 
 def load_latest_risk_answers(subscription_key):
-    if not subscription_key:
-        return {}
     try:
-        cursor.execute(
-            "SELECT note FROM psych_journal WHERE subscription_key=? AND mood=? ORDER BY id DESC LIMIT 1",
-            (subscription_key, "Risk Reflection")
-        )
+        if subscription_key:
+            cursor.execute(
+                "SELECT note FROM psych_journal WHERE subscription_key=? AND mood=? ORDER BY id DESC LIMIT 1",
+                (subscription_key, "Risk Reflection")
+            )
+        else:
+            cursor.execute(
+                "SELECT note FROM psych_journal WHERE mood=? ORDER BY id DESC LIMIT 1",
+                ("Risk Reflection",)
+            )
         row = cursor.fetchone()
         if not row:
             return {}
@@ -3134,59 +2637,24 @@ def load_latest_risk_answers(subscription_key):
 
 
 # ==================================
-# RISK TAB
+# RISK ARCHIVE
 # ==================================
 with risk_tab:
-    st.markdown("## 🛡 Risk Reflection Questionnaire")
+    st.markdown("## 🛡 Risk Archive")
     st.markdown(
-        "Use this section to answer one question at a time. Once a question has been answered and saved, it becomes read-only."
+        "This Risk Archive tab is read-only. Use the Psychology tab to create and edit self-reflection and risk reflection entries."
     )
     st.markdown("---")
 
     subscription_key = get_current_subscription_key()
-    saved_answers = load_latest_risk_answers(subscription_key)
-    answered_count = len([v for v in saved_answers.values() if str(v).strip()])
-    st.info(f"{answered_count}/{len(RISK_QUESTIONS)} questions answered. Saved answers are read-only.")
+    saved_note = load_latest_risk_answers(subscription_key)
 
-    with st.form("risk_reflection_form"):
-        for idx, question in enumerate(RISK_QUESTIONS, start=1):
-            answer_key = f"risk_question_{idx}"
-            existing_answer = saved_answers.get(str(idx), "")
-            st.text_input(
-                f"{idx}. {question}",
-                value=existing_answer,
-                key=answer_key,
-                disabled=bool(existing_answer)
-            )
-
-        save_reflection = st.form_submit_button("Save Risk Reflection")
-
-    if save_reflection:
-        merged_answers = saved_answers.copy()
-        for idx in range(1, len(RISK_QUESTIONS) + 1):
-            answer_key = f"risk_question_{idx}"
-            current_answer = str(st.session_state.get(answer_key, "")).strip()
-            if current_answer:
-                merged_answers[str(idx)] = current_answer
-
-        if not merged_answers:
-            st.warning("Answer at least one question before saving.")
-        else:
-            try:
-                cursor.execute(
-                    "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
-                    (
-                        str(datetime.now()),
-                        "Risk Reflection",
-                        json.dumps(merged_answers, ensure_ascii=False),
-                        subscription_key
-                    )
-                )
-                conn.commit()
-                st.success("Risk reflection saved to your psychology journal.")
-                st.experimental_rerun()
-            except Exception as e:
-                st.error(f"Failed to save reflection: {e}")
+    if saved_note:
+        st.subheader("Latest Risk Reflection")
+        st.write(saved_note)
+        st.info("Risk reflections are managed in the Psychology tab.")
+    else:
+        st.info("No saved risk reflection found. Use the Psychology tab to create one.")
 
 # ==================================
 # COMPOUNDING TAB
@@ -3252,17 +2720,130 @@ with goals:
 # ==================================
 # PSYCHOLOGY TAB
 # ==================================
+
+def get_development_plan_items():
+    return [
+        "Reframed my goal around consistency and process, not proving myself.",
+        "Followed my trading plan instead of acting impulsively.",
+        "Defined my risk before entering the trade.",
+        "Avoided revenge trading after a loss.",
+        "Stayed calm and avoided trading under strong emotion.",
+        "Reviewed my trades and identified one lesson.",
+        "Tracked process metrics instead of only judging the result.",
+        "Completed a weekly review and noted one improvement."
+    ]
+
+
+def load_latest_development_plan_state():
+    plan_entries = [
+        entry for entry in st.session_state.get("psych_journal", [])
+        if entry.get("mood") == "Development Plan"
+    ]
+    if not plan_entries:
+        return [], ""
+
+    latest_entry = plan_entries[0]
+    try:
+        payload = json.loads(latest_entry.get("note", "{}"))
+        completed = payload.get("completed", [])
+        reflection = payload.get("reflection", "")
+    except Exception:
+        completed = []
+        reflection = ""
+
+    return completed, reflection
+
+
 with psychology:
     st.markdown("## 🧠 Trading Psychology & Mindset")
     st.markdown("Log your mindset, track your mood, and get actionable psychology prompts.")
-    moods = ["😃 Great", "🙂 Good", "😐 Neutral", "😟 Stressed", "😢 Down"]
-    # Load persisted psychology notes for this subscription
-    if 'psych_journal' not in st.session_state:
+
+    st.markdown("### 🧭 Development Plan for a Non-Profitable Trader")
+    st.caption("Use this checklist to build discipline, manage risk, and focus on the process instead of short-term results.")
+
+    plan_items = get_development_plan_items()
+    saved_completed, saved_reflection = load_latest_development_plan_state()
+    selected_plan_items = st.multiselect(
+        "Today’s development checkpoints",
+        plan_items,
+        default=saved_completed,
+        key="development_plan_checklist"
+    )
+
+    progress_value = len(selected_plan_items) / len(plan_items) if plan_items else 0
+    st.progress(progress_value)
+    st.caption(f"{len(selected_plan_items)}/{len(plan_items)} checkpoints completed")
+
+    weekly_reflection = st.text_area(
+        "Weekly reflection",
+        value=saved_reflection,
+        key="development_plan_reflection",
+        height=120
+    )
+
+    if st.button("💾 Save Development Plan Progress"):
+        payload = {
+            "completed": selected_plan_items,
+            "reflection": weekly_reflection.strip(),
+            "updated_at": datetime.now().isoformat()
+        }
+        note = json.dumps(payload, ensure_ascii=False)
         try:
             cursor.execute(
-                "SELECT id, date, mood, note FROM psych_journal WHERE subscription_key=? ORDER BY id DESC",
-                (get_current_subscription_key(),)
+                "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                (str(datetime.now()), "Development Plan", note, get_current_subscription_key())
             )
+            conn.commit()
+            st.session_state.setdefault('psych_journal', [])
+            st.session_state['psych_journal'].insert(0, {
+                "id": cursor.lastrowid,
+                "date": str(datetime.now()),
+                "mood": "Development Plan",
+                "note": note
+            })
+            st.success("Development plan progress saved.")
+            rerun_app()
+        except Exception as e:
+            st.error(f"Failed to save development plan progress: {e}")
+
+    st.markdown("#### Recent plan notes")
+    plan_entries = [
+        entry for entry in st.session_state.get("psych_journal", [])
+        if entry.get("mood") == "Development Plan"
+    ]
+    if plan_entries:
+        for entry in plan_entries[:3]:
+            try:
+                payload = json.loads(entry.get("note", "{}"))
+                completed = payload.get("completed", [])
+                reflection = payload.get("reflection", "")
+            except Exception:
+                completed = []
+                reflection = ""
+            st.markdown(f"**{entry.get('date')}**")
+            if completed:
+                st.caption("Completed: " + ", ".join(completed))
+            if reflection:
+                st.write(reflection)
+            st.markdown("---")
+    else:
+        st.info("No development plan progress saved yet.")
+
+    st.markdown("---")
+    moods = ["😃 Great", "🙂 Good", "😐 Neutral", "😟 Stressed", "😢 Down"]
+    # Load persisted psychology notes for this subscription or globally if no key
+    if 'psych_journal' not in st.session_state:
+        try:
+            current_key = get_current_subscription_key()
+            if current_key:
+                cursor.execute(
+                    "SELECT id, date, mood, note FROM psych_journal WHERE subscription_key=? ORDER BY id DESC",
+                    (current_key,)
+                )
+            else:
+                cursor.execute(
+                    "SELECT id, date, mood, note FROM psych_journal ORDER BY id DESC"
+                )
             rows = cursor.fetchall()
             st.session_state['psych_journal'] = [
                 {"id": r[0], "date": r[1], "mood": r[2], "note": r[3]} for r in rows
@@ -3272,6 +2853,141 @@ with psychology:
 
     st.markdown("### Today's Mood")
     mood = st.radio("How do you feel about your trading today?", moods, horizontal=True)
+
+    mistake_options = {
+        "FOMO": "Review your plan before each trade and only act when your setup criteria are met.",
+        "Overtrading": "Limit yourself to a predefined number of trades per session and prioritize quality over quantity.",
+        "Moved Stop Loss": "Set your stop loss before entering the position and avoid adjusting it unless your edge changes.",
+        "Moved Take Profit": "Define profit targets in advance and trust the process instead of reacting to short-term noise.",
+        "Revenge Trading": "Take a break after a loss, journal the emotion, and only return when you are calm and objective.",
+        "Ignored HTF Bias": "Always verify the higher-timeframe trend before taking lower-timeframe entries.",
+        "Early Exit": "Use a consistent exit rule and avoid closing trades based on fear or temporary market fluctuations.",
+        "Late Entry": "Wait for your signal to complete and don’t force trades before your edge is established.",
+        "No Confirmation": "Require at least one confirmation signal before committing risk to a trade.",
+        "Risked Too Much": "Use a fixed risk percentage and calculate position size based on stop loss distance."
+    }
+
+    st.markdown("### Mistake Tracking")
+    st.session_state.setdefault('mistakes', [])
+    mistakes = st.multiselect(
+        "Mistakes Made",
+        list(mistake_options.keys()),
+        key="mistakes"
+    )
+    if mistakes:
+        st.info("These mistakes will be included with the next trade save.")
+        for mistake in mistakes:
+            st.caption(f"**{mistake}**: {mistake_options[mistake]}")
+
+    st.markdown("### Save Daily Mistakes")
+    with st.form("daily_mistakes_form"):
+        daily_mistakes = st.multiselect(
+            "Mistakes to log for today",
+            list(mistake_options.keys()),
+            key="daily_mistakes"
+        )
+        if daily_mistakes:
+            st.markdown("#### Suggested solutions")
+            for mistake in daily_mistakes:
+                st.caption(f"**{mistake}**: {mistake_options[mistake]}")
+        daily_mistake_comments = st.text_area(
+            "Optional journal notes for today's mistake log",
+            key="daily_mistake_comments"
+        )
+        save_daily_mistakes = st.form_submit_button("Save Daily Mistakes")
+        if save_daily_mistakes:
+            if not daily_mistakes:
+                st.warning("Select at least one mistake to save.")
+            else:
+                note = "Mistakes: " + ", ".join(daily_mistakes)
+                if daily_mistake_comments.strip():
+                    note += "\nComments: " + daily_mistake_comments.strip()
+                try:
+                    date_str = str(datetime.now())
+                    cursor.execute(
+                        "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                        (date_str, "Mistake Log", note, get_current_subscription_key())
+                    )
+                    conn.commit()
+                    new_id = cursor.lastrowid
+                    st.session_state.setdefault('psych_journal', [])
+                    st.session_state['psych_journal'].insert(0, {
+                        "id": new_id,
+                        "date": date_str,
+                        "mood": "Mistake Log",
+                        "note": note
+                    })
+                    st.success("Daily mistakes saved independently.")
+                    rerun_app()
+                except Exception as e:
+                    st.error(f"Failed to save daily mistakes: {e}")
+
+    st.markdown("---")
+
+    # ==========================
+    # MISTAKE ANALYSIS
+    # ==========================
+    st.subheader("🚨 Mistake Analysis")
+
+    trade_mistakes = pd.Series(dtype=str)
+    if "mistake_type" in df.columns:
+        trade_mistakes = (
+            df["mistake_type"]
+            .fillna("")
+            .str.split(",")
+            .explode()
+            .str.strip()
+        )
+        trade_mistakes = trade_mistakes[trade_mistakes != ""]
+
+    psych_mistake_notes = [
+        entry.get("note", "") for entry in st.session_state.get("psych_journal", [])
+        if entry.get("mood") == "Mistake Log"
+    ]
+    psych_mistakes = []
+    for note in psych_mistake_notes:
+        if note.startswith("Mistakes:"):
+            mistake_text = note.split("Mistakes:", 1)[1].split("\n", 1)[0].strip()
+            psych_mistakes.extend([m.strip() for m in mistake_text.split(",") if m.strip()])
+
+    all_mistakes = pd.Series(list(trade_mistakes) + psych_mistakes)
+
+    mistake_solutions = {
+        "FOMO": "Review your plan before each trade and only act when your setup criteria are met.",
+        "Overtrading": "Limit yourself to a predefined number of trades per session and prioritize quality over quantity.",
+        "Moved Stop Loss": "Set your stop loss before entering the position and avoid adjusting it unless your edge changes.",
+        "Moved Take Profit": "Define profit targets in advance and trust the process instead of reacting to noise.",
+        "Revenge Trading": "Take a break after a loss, journal the emotion, and only return when you are calm and objective.",
+        "Ignored HTF Bias": "Always verify the higher-timeframe trend before taking lower-timeframe entries.",
+        "Early Exit": "Use a consistent exit rule and avoid closing trades based on fear or temporary market noise.",
+        "Late Entry": "Wait for your signal to complete and don’t force trades before your edge is established.",
+        "No Confirmation": "Require at least one confirmation signal before committing risk to a trade.",
+        "Risked Too Much": "Use a fixed risk percentage and calculate position size based on stop loss distance."
+    }
+
+    if len(all_mistakes):
+        mistake_counts = all_mistakes.value_counts()
+        st.bar_chart(mistake_counts)
+
+        st.markdown("### Mistake Analysis with Suggested Solutions")
+        for mistake, count in mistake_counts.items():
+            solution = mistake_solutions.get(str(mistake), "Review your trade journal and identify a corrective action.")
+            st.markdown(f"**{mistake}** — {count} occurrence{'s' if count != 1 else ''}  ")
+            st.markdown(f"- **Solution:** {solution}")
+
+        if psych_mistake_notes:
+            st.markdown("### Latest Daily Mistake Logs")
+            for entry in [e for e in st.session_state.get("psych_journal", []) if e.get("mood") == "Mistake Log"]:
+                st.markdown(f"**{entry.get('date')}**")
+                st.write(entry.get("note"))
+                st.markdown("---")
+    else:
+        if "mistake_type" not in df.columns and not psych_mistake_notes:
+            st.info("No mistake-type data available for analysis.")
+        else:
+            st.info("No mistake categories found in your trading or psychology data.")
+
+    st.divider()
     st.markdown("---")
 
     st.markdown("### Saved Risk Reflections")
@@ -3280,25 +2996,88 @@ with psychology:
         if entry.get('mood') == 'Risk Reflection'
     ]
     if risk_reflections:
-        for entry in risk_reflections:
+        for i, entry in enumerate(risk_reflections):
+            entry_id = str(entry.get('id') or f'noid_{i}')
+            editing_key = f"edit_risk_{entry_id}"
+            edit_mode = st.session_state.get(editing_key, False)
             with st.expander(entry['date'], expanded=False):
-                if entry.get('note'):
-                    try:
-                        parsed = json.loads(entry['note'])
-                        if isinstance(parsed, dict):
-                            for idx, question in enumerate(RISK_QUESTIONS, start=1):
-                                answer = parsed.get(str(idx), "").strip()
-                                st.markdown(f"**{idx}. {question}**")
-                                st.write(answer if answer else "_No answer provided yet_")
-                                st.markdown("---")
-                        else:
-                            st.write(entry['note'])
-                    except Exception:
-                        st.write(entry['note'])
+                note_text = entry.get('note', '') or ''
+                if edit_mode:
+                    with st.form(f"edit_risk_form_{entry_id}"):
+                        new_note = st.text_area(
+                            "Risk reflection",
+                            value=note_text,
+                            key=f"edit_risk_note_{entry_id}"
+                        )
+                        save_changes = st.form_submit_button("Save Risk Reflection Changes")
+                        if save_changes:
+                            try:
+                                cursor.execute(
+                                    "UPDATE psych_journal SET note=? WHERE id=?",
+                                    (new_note, entry.get('id'))
+                                )
+                                conn.commit()
+                                st.session_state[editing_key] = False
+                                st.success("Risk reflection updated.")
+                                rerun_app()
+                            except Exception as e:
+                                st.error(f"Failed to update reflection: {e}")
                 else:
-                    st.write("_No content available._")
+                    parsed = None
+                    if note_text:
+                        try:
+                            parsed = json.loads(note_text)
+                        except Exception:
+                            parsed = None
+                    if isinstance(parsed, dict):
+                        for k, v in parsed.items():
+                            st.markdown(f"**{k}.** {v}")
+                            st.markdown("---")
+                    else:
+                        st.write(note_text)
+                    if st.button("Edit this risk reflection", key=f"edit_risk_btn_{entry_id}"):
+                        st.session_state[editing_key] = True
+                        rerun_app()
     else:
-        st.info("No saved risk reflections yet. Use the Risk tab to create one.")
+        st.info("No saved risk reflections yet. Use the section below to create one.")
+
+    st.markdown("---")
+    st.markdown("### New Risk Reflection")
+    with st.form("new_risk_reflection_form"):
+        new_risk_note = st.text_area(
+            "Write a new risk reflection note",
+            key="new_risk_note"
+        )
+
+        save_risk_reflection = st.form_submit_button("Save Risk Reflection")
+
+        if save_risk_reflection:
+            if not new_risk_note.strip():
+                st.warning("Enter a reflection note before saving.")
+            else:
+                try:
+                    cursor.execute(
+                        "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
+                        (
+                            str(datetime.now()),
+                            "Risk Reflection",
+                            new_risk_note.strip(),
+                            get_current_subscription_key()
+                        )
+                    )
+                    conn.commit()
+                    new_id = cursor.lastrowid
+                    st.session_state.setdefault('psych_journal', [])
+                    st.session_state['psych_journal'].insert(0, {
+                        "id": new_id,
+                        "date": str(datetime.now()),
+                        "mood": "Risk Reflection",
+                        "note": new_risk_note.strip()
+                    })
+                    st.success("Risk reflection saved.")
+                    rerun_app()
+                except Exception as e:
+                    st.error(f"Failed to save risk reflection: {e}")
 
     st.markdown("---")
     st.markdown("### Quick Reflection Prompts")
@@ -3335,62 +3114,47 @@ with psychology:
                 st.rerun()
         else:
             st.warning("No responses entered to save.")
+
     st.markdown("---")
-    st.markdown("### Psychology Journal")
-    with st.form("psych_form"):
-        psych_note = st.text_area("Write a detailed psychology note or reflection")
-        submitted = st.form_submit_button("Add Note")
-        if submitted and psych_note:
-            date_str = str(datetime.now())
-            try:
-                cursor.execute(
-                    "INSERT INTO psych_journal(date, mood, note, subscription_key) VALUES (?,?,?,?)",
-                    (date_str, mood, psych_note, get_current_subscription_key()),
-                )
-                conn.commit()
-                new_id = cursor.lastrowid
-            except Exception as e:
-                st.error(f"Failed to save note: {e}")
-            else:
-                # update session cache and rerun to refresh UI
-                st.session_state.setdefault('psych_journal', [])
-                st.session_state['psych_journal'].insert(0, {"id": new_id, "date": date_str, "mood": mood, "note": psych_note})
-                st.success("Psychology note saved")
-                st.rerun()
-
-    # History expander with delete action
-    with st.expander("🕘 Psychology History", expanded=False):
-        entries = st.session_state.get('psych_journal', [])
-        if not entries:
-            st.info("No psychology notes yet.")
-        for i, entry in enumerate(entries):
-            cols = st.columns([9,1])
-            with cols[0]:
-                st.markdown(f"**{entry['date']}** — {entry['mood']}")
-                st.write(entry['note'])
-            with cols[1]:
-                entry_id = entry.get('id') if entry.get('id') is not None else f'noid_{i}'
-                btn_key = f"del_psych_{entry_id}_{i}"
-                if st.button("Delete", key=btn_key):
-                    try:
-                        if entry.get('id') is not None:
-                            cursor.execute("DELETE FROM psych_journal WHERE id=?", (entry.get('id'),))
-                            conn.commit()
-                        # remove from session cache
-                        st.session_state['psych_journal'] = [e for e in st.session_state['psych_journal'] if e.get('id') != entry.get('id')]
-                        st.success("Entry deleted")
-                        st.rerun()
-                    except Exception as e:
-                        st.error(f"Failed to delete entry: {e}")
-
-    # CSV export for psychology notes
-    if st.session_state.get('psych_journal'):
+    st.markdown("### Reflection Analysis")
+    psych_entries = st.session_state.get('psych_journal', [])
+    if psych_entries:
         try:
-            df_psych = pd.DataFrame(st.session_state['psych_journal'])
-            csv_data = df_psych.to_csv(index=False)
-            st.download_button(label="📥 Download Psychology Notes as CSV", data=csv_data, file_name="psych_notes.csv")
-        except Exception:
-            pass
+            df_ref = pd.DataFrame(psych_entries)
+            total_logs = len(df_ref)
+            risk_count = int((df_ref['mood'] == 'Risk Reflection').sum()) if 'mood' in df_ref.columns else 0
+            mistake_log_count = int((df_ref['mood'] == 'Mistake Log').sum()) if 'mood' in df_ref.columns else 0
+            other_notes = total_logs - risk_count - mistake_log_count
+            latest_log = psych_entries[0]
+
+            col1, col2, col3, col4 = st.columns(4)
+            col1.metric("Total Logs", total_logs)
+            col2.metric("Risk Reflections", risk_count)
+            col3.metric("Mistake Logs", mistake_log_count)
+            col4.metric("Other Notes", other_notes)
+
+            st.markdown("#### Mood / Log Breakdown")
+            if 'mood' in df_ref.columns:
+                mood_counts = df_ref['mood'].value_counts()
+                st.bar_chart(mood_counts)
+            else:
+                st.info("No mood data available for log breakdown.")
+
+            st.markdown("#### Log Tracker")
+            tracker_cols = st.columns(3)
+            tracker_cols[0].metric("Last Log Saved", latest_log.get('date', 'N/A'))
+            tracker_cols[1].metric("Last Mood", latest_log.get('mood', 'N/A'))
+            tracker_cols[2].metric("Latest Entry Type", latest_log.get('mood', 'N/A'))
+
+            st.markdown("#### Recent Reflections")
+            for entry in psych_entries[:5]:
+                st.markdown(f"**{entry.get('date')}** — {entry.get('mood')}")
+                st.write(entry.get('note'))
+                st.markdown("---")
+        except Exception as e:
+            st.error(f"Failed to generate reflection analysis: {e}")
+    else:
+        st.info("No reflection entries yet. Save a note, mistake log, or risk reflection to start tracking.")
 
 # ==================================
 # ADMIN TAB
@@ -3453,7 +3217,7 @@ with admin:
             st.error("Too many invalid OTP attempts. Please wait 10 minutes and try again.")
         else:
             try:
-                sent_time = datetime.fromisoformat(otp_time)
+                sent_time = datetime.fromisoformat(otp_time) if isinstance(otp_time, str) else None
             except Exception:
                 sent_time = None
 
@@ -3613,10 +3377,11 @@ with admin:
                             "active": e_active
                         }, admin_user)
                         tpl = load_email_templates().get("update", {})
-                        subject = tpl.get("subject", "Subscription key updated: {key}").format(key=selected_meta.get("key_label", sel_hash[:8]))
+                        key_label = selected_meta.get("key_label") if selected_meta and selected_meta.get("key_label") else (sel_hash[:8] if isinstance(sel_hash, str) else "")
+                        subject = tpl.get("subject", "Subscription key updated: {key}").format(key=key_label)
                         body = tpl.get("body", "Admin {admin} updated key {key}").format(
                             admin=admin_user,
-                            key=selected_meta.get("key_label", sel_hash[:8]),
+                            key=key_label,
                             user=e_user,
                             email=e_email,
                             plan=e_plan,
@@ -3635,8 +3400,9 @@ with admin:
                         admin_user = st.session_state.get("admin_user", "admin")
                         log_admin_action("remove", sel_hash, selected_meta, admin_user)
                         tpl = load_email_templates().get("remove", {})
-                        subject = tpl.get("subject", "Subscription key removed: {key}").format(key=selected_meta.get("key_label", sel_hash[:8]))
-                        body = tpl.get("body", "Admin {admin} removed key {key}").format(admin=admin_user, key=selected_meta.get("key_label", sel_hash[:8]))
+                        key_label = selected_meta.get("key_label") if selected_meta and selected_meta.get("key_label") else (sel_hash[:8] if isinstance(sel_hash, str) else "")
+                        subject = tpl.get("subject", "Subscription key removed: {key}").format(key=key_label)
+                        body = tpl.get("body", "Admin {admin} removed key {key}").format(admin=admin_user, key=key_label)
                         send_admin_email(subject, body)
                         st.rerun()
                     else:
